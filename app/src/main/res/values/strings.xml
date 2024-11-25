@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Habit_Tracker</string>
+    <string name="add_habit">Add Habit</string>
+    <!-- hardcoded strings are bad practice! that's why we use string resources -->
 </resources>
