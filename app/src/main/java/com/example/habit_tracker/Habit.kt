@@ -6,6 +6,6 @@ with this class we can also keep track of completed habits
 package com.example.habit_tracker
 
 data class Habit(
-    val name: String,
+    var name: String,
     var isChecked: Boolean = false // val cannot be reassigned, var wel
 )

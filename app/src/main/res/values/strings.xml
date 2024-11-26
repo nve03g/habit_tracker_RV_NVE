@@ -2,5 +2,6 @@
     <string name="app_name">Habit_Tracker</string>
     <string name="add_habit">Add Habit</string>
     <string name="habit_text">Habit</string>
+    <string name="edit_habit">Edit Habit</string>
     <!-- hardcoded strings are bad practice! that's why we use string resources -->
 </resources>

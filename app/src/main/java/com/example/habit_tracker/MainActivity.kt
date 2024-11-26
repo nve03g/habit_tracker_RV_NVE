@@ -1,15 +1,12 @@
 package com.example.habit_tracker
 
+import android.icu.text.Transliterator.Position
 import android.os.Bundle
-//import android.widget.Button
-//import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
-
 import androidx.recyclerview.widget.ItemTouchHelper // to implement swipe functionality
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-
 
 
 class MainActivity : AppCompatActivity() {
@@ -30,7 +27,9 @@ class MainActivity : AppCompatActivity() {
             Habit("Exercise"),
             Habit("Read a book")
         )
-        adapter = HabitRecyclerAdapter(habits)
+        adapter = HabitRecyclerAdapter(habits) { position ->
+            showEditDialog(position) // callback to edit a habit
+        }
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -77,5 +76,34 @@ class MainActivity : AppCompatActivity() {
                 .create()
             dialog.show()
         }
+    }
+
+    // function to display edit dialog
+    private fun showEditDialog(position: Int) {
+        val inputField = android.widget.EditText(this).apply {
+            hint = "Edit habit"
+            setText(habits[position].name) // pre-fill with current habit name
+        }
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Edit habit")
+            .setMessage("Update your habit")
+            .setView(inputField)
+            .setPositiveButton("Save") { _, _ ->
+                val updatedHabit = inputField.text.toString()
+                if(updatedHabit.isNotBlank()){
+                    habits[position].name = updatedHabit
+                    adapter.notifyItemChanged(position)
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        "Habit cannot be empty",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        dialog.show()
     }
 }
