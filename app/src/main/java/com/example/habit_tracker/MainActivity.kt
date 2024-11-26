@@ -1,32 +1,53 @@
 package com.example.habit_tracker
 
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ListView
+//import android.widget.Button
+//import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
+
+import androidx.recyclerview.widget.ItemTouchHelper // to implement swipe functionality
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+
 
 
 class MainActivity : AppCompatActivity() {
     // save habits and adapter as properties of the activity so we can use them anywhere in the class
     private lateinit var habits: MutableList<Habit>
-    private lateinit var adapter: HabitAdapter
+    private lateinit var adapter: HabitRecyclerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val habitListView: ListView = findViewById(R.id.habitListView)
-        val addHabitButton: Button = findViewById(R.id.addHabitButton)
+        val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
+        val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
 
         // initialize habit list and adapter
         habits = mutableListOf(
-            Habit("drink water"),
-            Habit("exercise"),
-            Habit("read a book")
+            Habit("Drink water"),
+            Habit("Exercise"),
+            Habit("Read a book")
         )
-        adapter = HabitAdapter(this, habits)
+        adapter = HabitRecyclerAdapter(habits)
 
-        habitListView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+
+        val itemTouchHelper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                adapter.removeItem(position) // remove habit from list when swiped to the left
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(recyclerView)
 
         // click button to add new habit
         addHabitButton.setOnClickListener{
@@ -43,7 +64,7 @@ class MainActivity : AppCompatActivity() {
                     if (newHabit.isNotBlank()){
                         // add new habit and update list of habits
                         habits.add(Habit(newHabit))
-                        adapter.notifyDataSetChanged()
+                        adapter.notifyItemInserted(habits.size - 1)
                     } else {
                         android.widget.Toast.makeText(
                             this,
