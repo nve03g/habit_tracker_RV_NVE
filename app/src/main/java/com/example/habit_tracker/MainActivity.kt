@@ -1,15 +1,20 @@
 package com.example.habit_tracker
 
-import android.icu.text.Transliterator.Position
 import android.os.Bundle
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper // to implement swipe functionality
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var database: AppDatabase
+    private lateinit var habitDao: HabitDao
     // save habits and adapter as properties of the activity so we can use them anywhere in the class
     private lateinit var habits: MutableList<Habit>
     private lateinit var adapter: HabitRecyclerAdapter
@@ -18,15 +23,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // initialize database and Dao
+        database = AppDatabase.getDatabase(this)
+        habitDao = database.habitDao()
+
         val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
         val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
 
         // initialize habit list and adapter
-        habits = mutableListOf(
-            Habit("Drink water"),
-            Habit("Exercise"),
-            Habit("Read a book")
-        )
+        habits = mutableListOf()
         adapter = HabitRecyclerAdapter(habits) { position ->
             showEditDialog(position) // callback to edit a habit
         }
@@ -43,7 +48,11 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                adapter.removeItem(position) // remove habit from list when swiped to the left
+                lifecycleScope.launch {
+                    habitDao.deleteHabit(habits[position]) // delete habit from database
+                    habits.removeAt(position)
+                    adapter.notifyItemRemoved(position)
+                }
             }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -61,9 +70,13 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("Add") { _, _ ->
                     val newHabit = inputField.text.toString()
                     if (newHabit.isNotBlank()){
-                        // add new habit and update list of habits
-                        habits.add(Habit(newHabit))
-                        adapter.notifyItemInserted(habits.size - 1)
+                        val habit = Habit(name = newHabit) // pass the name parameter
+                        lifecycleScope.launch {
+                            val id = habitDao.insertHabit(habit) // save habit in database
+                            habit.id = id.toInt() // generate an id for the habit in the database
+                            habits.add(habit)
+                            adapter.notifyItemInserted(habits.size - 1)
+                        }
                     } else {
                         android.widget.Toast.makeText(
                             this,
@@ -75,6 +88,12 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .create()
             dialog.show()
+        }
+
+        // load habits from database at startup
+        lifecycleScope.launch {
+            habits.addAll(habitDao.getAllHabits())
+            adapter.notifyDataSetChanged()
         }
     }
 
@@ -93,6 +112,9 @@ class MainActivity : AppCompatActivity() {
                 val updatedHabit = inputField.text.toString()
                 if(updatedHabit.isNotBlank()){
                     habits[position].name = updatedHabit
+                    lifecycleScope.launch {
+                        habitDao.updateHabit(habits[position]) // update habit in database
+                    }
                     adapter.notifyItemChanged(position)
                 } else {
                     android.widget.Toast.makeText(
