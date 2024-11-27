@@ -1,6 +1,7 @@
 /*
 we need an adapter to show the habit objects in the list with checkboxes
 */
+// this .kt file is never used, we use HabitRecyclerAdapter.kt in stead
 
 package com.example.habit_tracker
 

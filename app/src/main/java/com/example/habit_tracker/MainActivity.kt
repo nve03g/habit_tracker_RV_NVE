@@ -1,12 +1,22 @@
 package com.example.habit_tracker
 
-import android.icu.text.Transliterator.Position
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.ItemTouchHelper // to implement swipe functionality
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+
+// gebruik WorkManager om herinneringen te plannen
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
+
+// notificatiekanaal definiëren
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 
 
 class MainActivity : AppCompatActivity() {
@@ -17,6 +27,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        createNotificationChannel()
 
         val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
         val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
@@ -64,6 +76,8 @@ class MainActivity : AppCompatActivity() {
                         // add new habit and update list of habits
                         habits.add(Habit(newHabit))
                         adapter.notifyItemInserted(habits.size - 1)
+                        // stel herinnering in, bv 1 dag later
+                        scheduleReminder(newHabit,1440)
                     } else {
                         android.widget.Toast.makeText(
                             this,
@@ -85,14 +99,35 @@ class MainActivity : AppCompatActivity() {
             setText(habits[position].name) // pre-fill with current habit name
         }
 
+        // Spinner for repetition of a habit
+        val repetitionSpinner = android.widget.Spinner(this)
+        val repetitionOptions = Repetition.entries.map { it.name.replaceFirstChar { char -> char.uppercase() } }
+        val spinnerAdapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            repetitionOptions
+        )
+
+        repetitionSpinner.adapter = spinnerAdapter
+        repetitionSpinner.setSelection(habits[position].repetition.ordinal)
+
+        // layout for the dialog pop-up window
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(inputField)
+            addView(repetitionSpinner)
+        }
+
         val dialog = android.app.AlertDialog.Builder(this)
             .setTitle("Edit habit")
             .setMessage("Update your habit")
-            .setView(inputField)
+            .setView(layout)
             .setPositiveButton("Save") { _, _ ->
                 val updatedHabit = inputField.text.toString()
+                val selectedRepetition = Repetition.entries[repetitionSpinner.selectedItemPosition]
                 if(updatedHabit.isNotBlank()){
                     habits[position].name = updatedHabit
+                    habits[position].repetition = selectedRepetition
                     adapter.notifyItemChanged(position)
                 } else {
                     android.widget.Toast.makeText(
@@ -105,5 +140,36 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .create()
         dialog.show()
+    }
+
+    private fun scheduleReminder(habitName: String, delayInMinutes: Long) {
+        // gegevens die naar de Worker gestuurd worden
+        val data = Data.Builder()
+            .putString("habit_name", habitName)
+            .build()
+
+        // taak plannen
+        val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
+            .setInputData(data)
+            .setInitialDelay(delayInMinutes, TimeUnit.MINUTES) // pas hier de timing aan
+            .build()
+
+        // voeg de taak toe aan WorkManager
+        WorkManager.getInstance(this).enqueue(reminderRequest)
+    }
+
+    private fun createNotificationChannel() {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            val channel = NotificationChannel(
+                "habit_reminders",
+                "Habit Reminders",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Herinneringen om je gewoontes te voltooien"
+            }
+
+            val notificationManager: NotificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 }
