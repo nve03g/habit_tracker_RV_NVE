@@ -17,6 +17,9 @@
     <CheckBox
         android:id="@+id/habitCheckBox"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:checked="false"
+        android:layout_gravity="center_vertical"/>
 
 </LinearLayout>

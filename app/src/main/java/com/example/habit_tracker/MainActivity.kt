@@ -92,7 +92,9 @@ class MainActivity : AppCompatActivity() {
 
         // load habits from database at startup
         lifecycleScope.launch {
-            habits.addAll(habitDao.getAllHabits())
+            val habitsFromDb = habitDao.getAllHabits()
+            habits.clear()
+            habits.addAll(habitsFromDb)
             adapter.notifyDataSetChanged()
         }
     }

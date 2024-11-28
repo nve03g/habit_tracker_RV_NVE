@@ -16,12 +16,15 @@ import androidx.recyclerview.widget.RecyclerView
 import android.app.AlertDialog
 import android.content.Context
 import android.widget.EditText
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class HabitRecyclerAdapter(
     //private val context: Context,
     private val habits: MutableList<Habit>,
     private val onEditHabit: (Int) -> Unit // callback to edit habit
 ): RecyclerView.Adapter<HabitRecyclerAdapter.HabitViewHolder>() {
+
     class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
         val habitText: TextView = itemView.findViewById(R.id.habitText)
         val habitCheckBox: CheckBox = itemView.findViewById(R.id.habitCheckBox)
@@ -39,14 +42,20 @@ class HabitRecyclerAdapter(
         holder.habitText.text = habit.name
         holder.habitCheckBox.isChecked = habit.isChecked
 
+        // update isChecked in database
         holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
             habit.isChecked = isChecked
+            GlobalScope.launch {
+                AppDatabase.getDatabase(holder.itemView.context)
+                    .habitDao()
+                    .updateHabit(habit) // update habit in the database
+            }
         }
 
         // click item to trigger edit callback
         holder.itemView.setOnClickListener{
             onEditHabit(position)
-            true
+            // true
         }
     }
 
