@@ -1,7 +1,9 @@
 package com.example.habit_tracker
 
 import android.os.Bundle
+import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper // to implement swipe functionality
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -59,18 +61,25 @@ class MainActivity : AppCompatActivity() {
 
         // click button to add new habit
         addHabitButton.setOnClickListener{
-            val inputField = android.widget.EditText(this).apply {
-                hint = "Enter new habit"
-            }
+            val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
+            val inputField : EditText = dialogView.findViewById(R.id.habitNameInput)
+            val categorySpinner: Spinner = dialogView.findViewById(R.id.categorySpinner)
 
+            // set up Spinner
+            val categories = listOf("Work", "Health", "Personal", "Other")
+            val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            categorySpinner.adapter = spinnerAdapter
+
+            // show dialog
             val dialog = android.app.AlertDialog.Builder(this)
                 .setTitle("New habit")
-                .setMessage("What habit would you like to add?")
-                .setView(inputField)
+                .setView(dialogView)
                 .setPositiveButton("Add") { _, _ ->
-                    val newHabit = inputField.text.toString()
-                    if (newHabit.isNotBlank()){
-                        val habit = Habit(name = newHabit) // pass the name parameter
+                    val name = inputField.text.toString()
+                    val category = categorySpinner.selectedItem.toString()
+                    if (name.isNotBlank()){
+                        val habit = Habit(name = name, category = category)
                         lifecycleScope.launch {
                             val id = habitDao.insertHabit(habit) // save habit in database
                             habit.id = id.toInt() // generate an id for the habit in the database
@@ -101,23 +110,32 @@ class MainActivity : AppCompatActivity() {
 
     // function to display edit dialog
     private fun showEditDialog(position: Int) {
-        val inputField = android.widget.EditText(this).apply {
-            hint = "Edit habit"
-            setText(habits[position].name) // pre-fill with current habit name
-        }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
+        val inputField : EditText = dialogView.findViewById(R.id.habitNameInput)
+        val categorySpinner: Spinner = dialogView.findViewById(R.id.categorySpinner)
 
+        // pre-fill current habit details
+        inputField.setText(habits[position].name)
+        val categories = listOf("Work", "Health", "Personal", "Other")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        categorySpinner.adapter = spinnerAdapter
+        categorySpinner.setSelection(categories.indexOf(habits[position].category))
+
+        // show dialog
         val dialog = android.app.AlertDialog.Builder(this)
             .setTitle("Edit habit")
-            .setMessage("Update your habit")
-            .setView(inputField)
+            .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                val updatedHabit = inputField.text.toString()
-                if(updatedHabit.isNotBlank()){
-                    habits[position].name = updatedHabit
+                val name = inputField.text.toString()
+                val category = categorySpinner.selectedItem.toString()
+                if(name.isNotBlank()){
+                    habits[position].name = name
+                    habits[position].category = category
                     lifecycleScope.launch {
                         habitDao.updateHabit(habits[position]) // update habit in database
+                        adapter.notifyItemChanged(position)
                     }
-                    adapter.notifyItemChanged(position)
                 } else {
                     android.widget.Toast.makeText(
                         this,

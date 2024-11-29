@@ -5,6 +5,7 @@ with this class we can also keep track of completed habits
 
 package com.example.habit_tracker
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -12,5 +13,6 @@ import androidx.room.PrimaryKey
 data class Habit(
     @PrimaryKey(autoGenerate = true) var id: Int = 0,
     var name: String,
+    var category: String = "General",
     var isChecked: Boolean = false // val cannot be reassigned, var wel
 )
