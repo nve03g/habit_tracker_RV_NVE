@@ -1,25 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:padding="8dp">
-    
+
+    <!-- Habit Name -->
     <TextView
         android:id="@+id/habitText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:text="@string/habit_text"
-        android:textSize="16sp"/>
-    
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/habitCheckBox"
+        app:layout_constraintHorizontal_bias="0" />
+
+    <!-- Habit Category -->
+    <TextView
+        android:id="@+id/habitCategory"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif"
+        tools:text="Category Name"
+        app:layout_constraintStart_toStartOf="@id/habitText"
+        app:layout_constraintTop_toBottomOf="@id/habitText"
+        app:layout_constraintEnd_toStartOf="@id/habitCheckBox" />
+
+    <!-- Habit Checkbox -->
     <CheckBox
         android:id="@+id/habitCheckBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:checked="false"
-        android:layout_gravity="center_vertical"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.5" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

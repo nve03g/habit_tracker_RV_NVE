@@ -27,6 +27,7 @@ class HabitRecyclerAdapter(
 
     class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
         val habitText: TextView = itemView.findViewById(R.id.habitText)
+        val habitCategory: TextView = itemView.findViewById(R.id.habitCategory) // Add reference to category TextView
         val habitCheckBox: CheckBox = itemView.findViewById(R.id.habitCheckBox)
     }
 
@@ -39,7 +40,9 @@ class HabitRecyclerAdapter(
     override fun onBindViewHolder(holder: HabitViewHolder, position: Int) {
         val habit = habits[position]
 
+        // set habit name and category
         holder.habitText.text = habit.name
+        holder.habitCategory.text = habit.category
         holder.habitCheckBox.isChecked = habit.isChecked
 
         // update isChecked in database
