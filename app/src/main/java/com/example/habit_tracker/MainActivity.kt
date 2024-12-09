@@ -1,6 +1,8 @@
 package com.example.habit_tracker
 
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Spinner
@@ -24,6 +26,25 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // setup Spinner categories
+        val categoryFilterSpinner: Spinner = findViewById(R.id.categoryFilterSpinner)
+        val filterCategories = listOf("All", "Work", "Health", "Personal", "Other")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, filterCategories)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        categoryFilterSpinner.adapter = spinnerAdapter
+
+        // listener to filter habits
+        categoryFilterSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedCategory = filterCategories[position]
+                filterHabits(selectedCategory)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // do nothing
+            }
+        }
 
         // initialize database and Dao
         database = AppDatabase.getDatabase(this)
@@ -148,4 +169,18 @@ class MainActivity : AppCompatActivity() {
             .create()
         dialog.show()
     }
+
+    private fun filterHabits(category: String) {
+        lifecycleScope.launch {
+            val filteredHabits = if (category == "All") {
+                habitDao.getAllHabits()
+            } else {
+                habitDao.getHabitsByCategory(category)
+            }
+            habits.clear()
+            habits.addAll(filteredHabits)
+            adapter.notifyDataSetChanged()
+        }
+    }
+
 }
