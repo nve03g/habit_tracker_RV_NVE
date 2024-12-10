@@ -1,4 +1,6 @@
 package com.example.habit_tracker
 
-class Subtask {
-}
+data class Subtask(
+    val name: String,            // Naam van de subtask
+    var isComplete: Boolean = false // Voltooiingsstatus
+)

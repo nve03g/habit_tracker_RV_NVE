@@ -1,18 +1,19 @@
-/*
-in stead of using a mutable list of strings for our habits, we make a habit class
-with this class we can also keep track of completed habits
- */
-
 package com.example.habit_tracker
+
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
 
-@Entity(tableName = "habits") // create an entity for the database
+@Entity(tableName = "habits") // Create an entity for the database
 data class Habit(
-    @PrimaryKey(autoGenerate = true) var id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    var id: Int = 0,
     var name: String,
     var category: String = "General",
-    var isChecked: Boolean = false // val cannot be reassigned, var wel
+    var isChecked: Boolean = false,
+    var subtasks: MutableList<Subtask> = mutableListOf() // Lijst met subtaken
+
 )
+

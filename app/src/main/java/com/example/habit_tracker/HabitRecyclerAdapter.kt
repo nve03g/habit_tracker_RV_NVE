@@ -1,7 +1,3 @@
-/*
-RecyclerView.Adapter is similar to a BaseAdapter, but specifically for a RecyclerView
- */
-
 package com.example.habit_tracker
 
 import android.view.LayoutInflater
@@ -9,26 +5,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
-//import androidx.appcompat.view.menu.MenuView.ItemView
 import androidx.recyclerview.widget.RecyclerView
-
-// added to edit habits when clicking on them
-import android.app.AlertDialog
-import android.content.Context
-import android.widget.EditText
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import android.widget.LinearLayout
 
 class HabitRecyclerAdapter(
-    //private val context: Context,
     private val habits: MutableList<Habit>,
-    private val onEditHabit: (Int) -> Unit // callback to edit habit
-): RecyclerView.Adapter<HabitRecyclerAdapter.HabitViewHolder>() {
+    private val onEditHabit: (Int) -> Unit // Callback to edit habit
+) : RecyclerView.Adapter<HabitRecyclerAdapter.HabitViewHolder>() {
 
-    class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
+    class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val habitText: TextView = itemView.findViewById(R.id.habitText)
-        val habitCategory: TextView = itemView.findViewById(R.id.habitCategory) // Add reference to category TextView
+        val habitCategory: TextView = itemView.findViewById(R.id.habitCategory)
         val habitCheckBox: CheckBox = itemView.findViewById(R.id.habitCheckBox)
+        val subtasksContainer: LinearLayout = itemView.findViewById(R.id.subtasksContainer)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HabitViewHolder {
@@ -38,34 +27,61 @@ class HabitRecyclerAdapter(
     }
 
     override fun onBindViewHolder(holder: HabitViewHolder, position: Int) {
+        // Controleer of de index geldig is
+        if (position < 0 || position >= habits.size) return
+
         val habit = habits[position]
 
-        // set habit name and category
+        // Stel de naam en categorie van de hoofdtaak in
         holder.habitText.text = habit.name
         holder.habitCategory.text = habit.category
         holder.habitCheckBox.isChecked = habit.isChecked
 
-        // update isChecked in database
-        holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
-            habit.isChecked = isChecked
-            GlobalScope.launch {
-                AppDatabase.getDatabase(holder.itemView.context)
-                    .habitDao()
-                    .updateHabit(habit) // update habit in the database
+        // Verwijder alle oude subtaken (voorkom duplicaten)
+        holder.subtasksContainer.removeAllViews()
+
+        // Dynamisch subtaken toevoegen
+        habit.subtasks.forEach { subtask ->
+            val subtaskCheckBox = CheckBox(holder.itemView.context)
+            subtaskCheckBox.text = subtask.name
+            subtaskCheckBox.isChecked = subtask.isComplete
+            subtaskCheckBox.setOnCheckedChangeListener { _, isChecked ->
+                subtask.isComplete = isChecked
+                // Optioneel: Update de database of de lijst als nodig
             }
+            holder.subtasksContainer.addView(subtaskCheckBox)
         }
 
-        // click item to trigger edit callback
-        holder.itemView.setOnClickListener{
+        // Hoofdcheckbox logica
+        holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
+            habit.isChecked = isChecked
+            // Optioneel: Update de database
+        }
+
+        // Stel een clicklistener in op de hele hoofdtaak
+        holder.itemView.setOnClickListener {
+            // Controleer of de index geldig is voordat je een dialoog opent
+            if (position < 0 || position >= habits.size) {
+                android.widget.Toast.makeText(
+                    holder.itemView.context,
+                    "Habit not found or already deleted.",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
+            // Roep een bewerkdialog aan om de hoofdtaak aan te passen
             onEditHabit(position)
-            // true
         }
     }
 
     override fun getItemCount(): Int = habits.size
 
     fun removeItem(position: Int) {
-        habits.removeAt(position)
-        notifyItemRemoved(position)
+        // Controleer of de index geldig is voordat je een item verwijdert
+        if (position >= 0 && position < habits.size) {
+            habits.removeAt(position)
+            notifyItemRemoved(position)
+        }
     }
 }

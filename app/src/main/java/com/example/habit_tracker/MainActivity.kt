@@ -1,6 +1,7 @@
 package com.example.habit_tracker
 
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -9,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import androidx.appcompat.app.AppCompatDelegate
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: HabitRecyclerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -27,6 +31,7 @@ class MainActivity : AppCompatActivity() {
 
         val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
         val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
+        val categoryFilterSpinner: Spinner = findViewById(R.id.categoryFilterSpinner)
 
         // Initialize habit list and adapter
         habits = mutableListOf()
@@ -37,20 +42,39 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
+        // Load habits from database
+        loadHabits()
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                lifecycleScope.launch {
-                    habitDao.deleteHabit(habits[position]) // Delete habit from database
-                    habits.removeAt(position)
-                    adapter.notifyItemRemoved(position)
-                }
+        // Set up category filter
+        val categories = listOf("All", "Work", "Health", "Personal", "Other")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        categoryFilterSpinner.adapter = spinnerAdapter
+
+        // Filter habits when a category is selected
+        categoryFilterSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedCategory = categories[position]
+                filterHabits(selectedCategory)
             }
-        })
-        itemTouchHelper.attachToRecyclerView(recyclerView)
 
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // Do nothing
+            }
+        }
+        val darkModeSwitch: Switch = findViewById(R.id.darkModeSwitch)
+
+        // Controleer huidige modus en stel de switch in
+        val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
+        darkModeSwitch.isChecked = isNightMode
+
+        darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            }
+        }
         // Add new habit with subtasks
         addHabitButton.setOnClickListener {
             val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
@@ -92,8 +116,10 @@ class MainActivity : AppCompatActivity() {
                 .create()
             dialog.show()
         }
+    }
 
-        // Load habits from database at startup
+    // Load habits from database
+    private fun loadHabits() {
         lifecycleScope.launch {
             val habitsFromDb = habitDao.getAllHabits()
             habits.clear()
@@ -101,6 +127,22 @@ class MainActivity : AppCompatActivity() {
             adapter.notifyDataSetChanged()
         }
     }
+
+    // Filter habits by category
+    private fun filterHabits(category: String) {
+        lifecycleScope.launch {
+            val filteredHabits = if (category == "All") {
+                habitDao.getAllHabits() // No filter
+            } else {
+                habitDao.getHabitsByCategory(category) // Filter by category
+            }
+
+            habits.clear()
+            habits.addAll(filteredHabits)
+            adapter.notifyDataSetChanged()
+        }
+    }
+
 
     // Function to display edit dialog
     private fun showEditDialog(position: Int) {
