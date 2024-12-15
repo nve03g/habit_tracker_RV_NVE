@@ -11,6 +11,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.material.appbar.MaterialToolbar
 
 
 class MainActivity : AppCompatActivity() {
@@ -21,9 +22,32 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: HabitRecyclerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // set up toolbar
+        setSupportActionBar(findViewById(R.id.topAppBar))
+
+        // handle dark mode switch
+        val darkModeSwitch: Switch = findViewById(R.id.darkModeSwitch)
+        // Controleer huidige modus en stel de switch in
+        val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
+        darkModeSwitch.isChecked = isNightMode
+
+        darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            }
+        }
+
+        // handle hamburger menu
+        val topAppBar: MaterialToolbar = findViewById(R.id.topAppBar)
+        topAppBar.setNavigationOnClickListener {
+            // handle menu item click
+            Toast.makeText(this, "Menu icon clicked", Toast.LENGTH_SHORT).show()
+        }
 
         // Initialize database and Dao
         database = AppDatabase.getDatabase(this)
@@ -62,19 +86,7 @@ class MainActivity : AppCompatActivity() {
                 // Do nothing
             }
         }
-        val darkModeSwitch: Switch = findViewById(R.id.darkModeSwitch)
 
-        // Controleer huidige modus en stel de switch in
-        val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
-        darkModeSwitch.isChecked = isNightMode
-
-        darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            }
-        }
         // Add new habit with subtasks
         addHabitButton.setOnClickListener {
             val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
@@ -105,10 +117,10 @@ class MainActivity : AppCompatActivity() {
                             adapter.notifyItemInserted(habits.size - 1)
                         }
                     } else {
-                        android.widget.Toast.makeText(
+                        Toast.makeText(
                             this,
                             "Habit cannot be empty",
-                            android.widget.Toast.LENGTH_SHORT
+                            Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
