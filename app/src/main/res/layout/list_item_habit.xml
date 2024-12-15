@@ -1,43 +1,55 @@
-<LinearLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="8dp">
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="6dp">
 
-    <!-- Naam van de hoofdtaak -->
-    <TextView
-        android:id="@+id/habitText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Habit Name"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:paddingBottom="4dp" />
-
-    <!-- Categorie of andere informatie -->
-    <TextView
-        android:id="@+id/habitCategory"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Category"
-        android:textSize="14sp"
-        android:paddingBottom="4dp" />
-
-    <!-- Container voor subtaken -->
     <LinearLayout
-        android:id="@+id/subtasksContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="4dp">
-    </LinearLayout>
+        android:padding="16dp">
 
-    <!-- Checkbox voor hoofdtaak -->
-    <CheckBox
-        android:id="@+id/habitCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:text="Complete" />
-</LinearLayout>
+        <!-- Naam van de hoofdtaak -->
+        <TextView
+            android:id="@+id/habitText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Habit Name"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:paddingBottom="4dp" />
+
+        <!-- Categorie of andere informatie -->
+        <TextView
+            android:id="@+id/habitCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Category"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingBottom="8dp" />
+
+        <!-- Checkbox voor hoofdtaak -->
+        <CheckBox
+            android:id="@+id/habitCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="Complete" />
+
+        <!-- Container voor subtasks -->
+        <LinearLayout
+            android:id="@+id/subtasksContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingTop="8dp">
+            <!-- Subtasks worden hier dynamisch toegevoegd -->
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -8,20 +7,40 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- RecyclerView to show and delete habits-->
+    <!-- dark mode switch -->
+    <Switch
+        android:id="@+id/darkModeSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dark Mode"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp" />
 
+    <!-- spinner voor categorieën -->
+    <Spinner
+        android:id="@+id/categoryFilterSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:spinnerMode="dropdown"
+        app:layout_constraintTop_toBottomOf="@+id/darkModeSwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- RecyclerView to show and delete habits-->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/habitRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@id/addHabitButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/categoryFilterSpinner"
-        app:layout_constraintVertical_bias="0.0"
         tools:listitem="@layout/list_item_habit" />
 
+    <!-- floating button om habit toe te voegen -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addHabitButton"
         android:layout_width="wrap_content"
@@ -33,28 +52,9 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"/>
 
-    <Spinner
-        android:id="@+id/categoryFilterSpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:text="FILTER"
-        android:spinnerMode="dropdown"
-        app:layout_constraintTop_toBottomOf="@+id/darkModeSwitch"
-        tools:layout_editor_absoluteX="8dp" />
 
-    <Switch
-        android:id="@+id/darkModeSwitch"
-        android:layout_width="124dp"
-        android:layout_height="32dp"
-        android:layout_margin="8dp"
-        android:layout_marginTop="4dp"
-        android:checked="false"
-        android:text="Dark Mode"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+
+
 
 
 

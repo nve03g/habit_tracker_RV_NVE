@@ -7,6 +7,7 @@ import android.widget.CheckBox
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
+import android.widget.Toast
 
 class HabitRecyclerAdapter(
     private val habits: MutableList<Habit>,
@@ -37,39 +38,42 @@ class HabitRecyclerAdapter(
         holder.habitCategory.text = habit.category
         holder.habitCheckBox.isChecked = habit.isChecked
 
-        // Verwijder alle oude subtaken (voorkom duplicaten)
-        holder.subtasksContainer.removeAllViews()
-
-        // Dynamisch subtaken toevoegen
-        habit.subtasks.forEach { subtask ->
-            val subtaskCheckBox = CheckBox(holder.itemView.context)
-            subtaskCheckBox.text = subtask.name
-            subtaskCheckBox.isChecked = subtask.isComplete
-            subtaskCheckBox.setOnCheckedChangeListener { _, isChecked ->
-                subtask.isComplete = isChecked
-                // Optioneel: Update de database of de lijst als nodig
+        // subtaken verwerken
+        if (habit.subtasks.isNotEmpty()) {
+            holder.subtasksContainer.visibility = View.VISIBLE
+            holder.subtasksContainer.removeAllViews() // voorkom duplicaten
+            habit.subtasks.forEach { subtask ->
+                val subtaskCheckBox = CheckBox(holder.itemView.context).apply {
+                    text = subtask.name
+                    isChecked = subtask.isComplete
+                    setOnCheckedChangeListener { _, isChecked ->
+                        subtask.isComplete = isChecked
+                        // update in database? (optioneel)
+                    }
+                }
+                holder.subtasksContainer.addView(subtaskCheckBox)
             }
-            holder.subtasksContainer.addView(subtaskCheckBox)
+        } else {
+            holder.subtasksContainer.visibility = View.GONE
         }
 
-        // Hoofdcheckbox logica
+        // hoofdtaak checkbox logica
         holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
             habit.isChecked = isChecked
-            // Optioneel: Update de database
+            // update in database? (optioneel)
         }
 
-        // Stel een clicklistener in op de hele hoofdtaak
+        // Stel een clicklistener in op de hele hoofdtaak (bewerk-functionaliteit)
         holder.itemView.setOnClickListener {
             // Controleer of de index geldig is voordat je een dialoog opent
             if (position < 0 || position >= habits.size) {
-                android.widget.Toast.makeText(
+                Toast.makeText(
                     holder.itemView.context,
                     "Habit not found or already deleted.",
-                    android.widget.Toast.LENGTH_SHORT
+                    Toast.LENGTH_SHORT
                 ).show()
                 return@setOnClickListener
             }
-
             // Roep een bewerkdialog aan om de hoofdtaak aan te passen
             onEditHabit(position)
         }
@@ -79,7 +83,7 @@ class HabitRecyclerAdapter(
 
     fun removeItem(position: Int) {
         // Controleer of de index geldig is voordat je een item verwijdert
-        if (position >= 0 && position < habits.size) {
+        if (position in 0 until habits.size) {
             habits.removeAt(position)
             notifyItemRemoved(position)
         }
