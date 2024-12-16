@@ -23,7 +23,7 @@
             app:title="Habit Tracker"
             app:titleCentered="true"
             app:navigationIcon="@drawable/ic_menu"
-        app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- dark mode switch (rechts in toolbar) -->
@@ -31,11 +31,19 @@
         android:id="@+id/darkModeSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Dark Mode"
         app:layout_constraintTop_toTopOf="@id/appBarLayout"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginStart="16dp"
         android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/modeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:text="mode"
+        app:layout_constraintBaseline_toBaselineOf="@+id/darkModeSwitch"
+        app:layout_constraintEnd_toStartOf="@id/darkModeSwitch"/>
 
     <!-- spinner voor categorieën -->
     <Spinner
