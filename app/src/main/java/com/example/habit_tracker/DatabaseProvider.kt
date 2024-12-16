@@ -18,6 +18,7 @@ object DatabaseProvider {
                 ).build()
             }
         }
+
         return instance!! // this implies that we know the instance will not be null, so no need to null-check this
     }
 }

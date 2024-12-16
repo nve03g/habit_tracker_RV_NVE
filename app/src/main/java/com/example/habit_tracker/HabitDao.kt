@@ -26,4 +26,6 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE category = :category")
     suspend fun getHabitsByCategory(category: String): List<Habit>
 
+
+
 }

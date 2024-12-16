@@ -1,7 +1,9 @@
 package com.example.habit_tracker
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.view.WindowManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -59,9 +61,10 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize habit list and adapter
         habits = mutableListOf()
-        adapter = HabitRecyclerAdapter(habits) { position ->
-            showEditDialog(position) // Callback to edit a habit
-        }
+        adapter = HabitRecyclerAdapter(habits, { position ->
+            showEditDialog(position)
+        }, habitDao, lifecycleScope)
+
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -86,6 +89,42 @@ class MainActivity : AppCompatActivity() {
                 // Do nothing
             }
         }
+
+        topAppBar.setNavigationOnClickListener {
+            // Maak een nieuw venster
+            val dialogView = layoutInflater.inflate(R.layout.menu_dialog, null)
+            val dialog = android.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create()
+
+            // Stel knoppen in
+            val statisticsButton: Button = dialogView.findViewById(R.id.statisticsButton)
+            val completedButton: Button = dialogView.findViewById(R.id.completedButton)
+            val tasksButton: Button = dialogView.findViewById(R.id.tasksButton) // Nieuwe knop
+
+            // Functies toevoegen (voorlopig leeg)
+            statisticsButton.setOnClickListener {
+                Toast.makeText(this, "Statistieken", Toast.LENGTH_SHORT).show()
+            }
+
+            completedButton.setOnClickListener {
+                Toast.makeText(this, "Completed", Toast.LENGTH_SHORT).show()
+            }
+
+            tasksButton.setOnClickListener { // Nieuwe logica
+                Toast.makeText(this, "Tasks", Toast.LENGTH_SHORT).show()
+            }
+
+            // Toon de dialog
+            dialog.show()
+
+            // Pas de breedte en hoogte van het venster aan
+            val window = dialog.window
+            window?.setLayout(resources.displayMetrics.widthPixels / 2, WindowManager.LayoutParams.MATCH_PARENT)
+            window?.setGravity(Gravity.START) // Open vanaf links
+            window?.setBackgroundDrawableResource(android.R.color.transparent) // Zorg voor een transparante achtergrond
+        }
+
 
         // Add new habit with subtasks
         addHabitButton.setOnClickListener {

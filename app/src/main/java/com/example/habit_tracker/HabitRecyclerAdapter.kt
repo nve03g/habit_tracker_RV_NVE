@@ -1,5 +1,7 @@
 package com.example.habit_tracker
 
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,10 +10,14 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class HabitRecyclerAdapter(
     private val habits: MutableList<Habit>,
-    private val onEditHabit: (Int) -> Unit // Callback to edit habit
+    private val onEditHabit: (Int) -> Unit, // Callback
+    private val habitDao: HabitDao, // Voeg habitDao toe
+    private val lifecycleScope: CoroutineScope // Voeg lifecycleScope toe
 ) : RecyclerView.Adapter<HabitRecyclerAdapter.HabitViewHolder>() {
 
     class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -28,27 +34,57 @@ class HabitRecyclerAdapter(
     }
 
     override fun onBindViewHolder(holder: HabitViewHolder, position: Int) {
-        // Controleer of de index geldig is
-        if (position < 0 || position >= habits.size) return
-
         val habit = habits[position]
 
-        // Stel de naam en categorie van de hoofdtaak in
+        // Stel de naam, categorie en checkbox in
         holder.habitText.text = habit.name
         holder.habitCategory.text = habit.category
+        holder.habitCheckBox.setOnCheckedChangeListener(null) // Verwijder oude listener
         holder.habitCheckBox.isChecked = habit.isChecked
 
-        // subtaken verwerken
+        // Update visuele status
+        updateStrikeThrough(holder, habit.isChecked)
+
+        // Stel nieuwe listener in
+        holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
+            habit.isChecked = isChecked
+            updateStrikeThrough(holder, isChecked)
+
+            // Verwijder het huidige item en voeg het toe aan de juiste positie
+            habits.removeAt(position)
+            if (isChecked) {
+                habits.add(habit) // Voeg onderaan toe
+            } else {
+                habits.add(0, habit) // Voeg bovenaan toe
+            }
+            notifyDataSetChanged() // Update lijst
+
+            // Update database
+            lifecycleScope.launch {
+                habitDao.updateHabit(habit)
+            }
+        }
+
+        // Dynamisch subtaken verwerken
         if (habit.subtasks.isNotEmpty()) {
             holder.subtasksContainer.visibility = View.VISIBLE
-            holder.subtasksContainer.removeAllViews() // voorkom duplicaten
+            holder.subtasksContainer.removeAllViews()
             habit.subtasks.forEach { subtask ->
                 val subtaskCheckBox = CheckBox(holder.itemView.context).apply {
                     text = subtask.name
                     isChecked = subtask.isComplete
-                    setOnCheckedChangeListener { _, isChecked ->
-                        subtask.isComplete = isChecked
-                        // update in database? (optioneel)
+                    paintFlags = if (isChecked) {
+                        paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+                    } else {
+                        paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                    }
+                    setOnCheckedChangeListener { _, subtaskChecked ->
+                        subtask.isComplete = subtaskChecked
+                        paintFlags = if (subtaskChecked) {
+                            paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+                        } else {
+                            paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                        }
                     }
                 }
                 holder.subtasksContainer.addView(subtaskCheckBox)
@@ -57,11 +93,34 @@ class HabitRecyclerAdapter(
             holder.subtasksContainer.visibility = View.GONE
         }
 
+        // Stel een clicklistener in op de hele hoofdtaak
+        holder.itemView.setOnClickListener {
+            onEditHabit(position)
+        }
+
+
         // hoofdtaak checkbox logica
         holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
             habit.isChecked = isChecked
-            // update in database? (optioneel)
+            updateStrikeThrough(holder, isChecked)
+
+            // Verplaats item in de lijst na de lay-out cyclus
+            Handler(Looper.getMainLooper()).post {
+                habits.removeAt(position)
+                if (isChecked) {
+                    habits.add(habit) // Verplaats naar onderaan
+                } else {
+                    habits.add(0, habit) // Verplaats naar bovenaan
+                }
+                notifyDataSetChanged() // Lijst opnieuw laden
+            }
+
+            // Update de habit in de database
+            lifecycleScope.launch {
+                habitDao.updateHabit(habit)
+            }
         }
+
 
         // Stel een clicklistener in op de hele hoofdtaak (bewerk-functionaliteit)
         holder.itemView.setOnClickListener {
@@ -88,4 +147,14 @@ class HabitRecyclerAdapter(
             notifyItemRemoved(position)
         }
     }
+    private fun updateStrikeThrough(holder: HabitViewHolder, isChecked: Boolean) {
+        if (isChecked) {
+            holder.habitText.paintFlags = holder.habitText.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            holder.habitCategory.paintFlags = holder.habitCategory.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+        } else {
+            holder.habitText.paintFlags = holder.habitText.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+            holder.habitCategory.paintFlags = holder.habitCategory.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+        }
+    }
+
 }
