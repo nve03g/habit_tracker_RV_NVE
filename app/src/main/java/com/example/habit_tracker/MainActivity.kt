@@ -147,46 +147,77 @@ class MainActivity : AppCompatActivity() {
 
         // Add new habit with subtasks
         addHabitButton.setOnClickListener {
-            val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
-            val inputField: EditText = dialogView.findViewById(R.id.habitNameInput)
-            val categorySpinner: Spinner = dialogView.findViewById(R.id.categorySpinner)
+            showAddDialog()
+        }
 
-            // Set up Spinner
-            val categories = listOf("Work", "Health", "Personal", "Other")
-            val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            categorySpinner.adapter = spinnerAdapter
 
-            // Show dialog
-            val dialog = android.app.AlertDialog.Builder(this)
-                .setTitle("New Habit")
-                .setView(dialogView)
-                .setPositiveButton("Add") { _, _ ->
-                    val name = inputField.text.toString()
-                    val category = categorySpinner.selectedItem.toString()
-                    val subtasks = mutableListOf<Subtask>() // Lege subtakenlijst
+    }
 
-                    if (name.isNotBlank()) {
-                        val habit = Habit(name = name, category = category, subtasks = subtasks)
-                        lifecycleScope.launch {
-                            val id = habitDao.insertHabit(habit) // Save habit in database
-                            habit.id = id.toInt()
-                            habits.add(habit)
-                            adapter.notifyItemInserted(habits.size - 1)
-                        }
-                    } else {
-                        Toast.makeText(
-                            this,
-                            "Habit cannot be empty",
-                            Toast.LENGTH_SHORT
-                        ).show()
+    // add new habits
+    private fun showAddDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
+        val inputField: EditText = dialogView.findViewById(R.id.habitNameInput)
+        val categorySpinner: Spinner = dialogView.findViewById(R.id.categorySpinner)
+        val subtasksContainer: LinearLayout = dialogView.findViewById(R.id.subtasksContainer)
+        val addSubtaskButton: Button = dialogView.findViewById(R.id.addSubtaskButton)
+        val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
+
+        // Set up Spinner
+        val categories = listOf("Work", "Health", "Personal", "Other")
+        val spinnerAdapter =
+            ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        categorySpinner.adapter = spinnerAdapter
+
+        // Add new subtasks
+        addSubtaskButton.setOnClickListener {
+            val newSubtaskView = createSubtaskInput("", subtasksContainer)
+            subtasksContainer.addView(newSubtaskView)
+        }
+
+        // Show dialog
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("New Habit")
+            .setView(dialogView)
+            .setPositiveButton("Add") { _, _ ->
+                val name = inputField.text.toString()
+                val category = categorySpinner.selectedItem.toString()
+                val subtasks = mutableListOf<Subtask>()
+
+                // Retrieve all subtasks
+                for (i in 0 until subtasksContainer.childCount) {
+                    val container = subtasksContainer.getChildAt(i) as LinearLayout
+                    val subtaskInput = container.getChildAt(0) as EditText
+                    val subtaskName = subtaskInput.text.toString().trim()
+                    if (subtaskName.isNotEmpty()) {
+                        subtasks.add(Subtask(subtaskName))
                     }
                 }
-                .setNegativeButton("Cancel", null)
-                .create()
-            dialog.show()
-        }
+                if (name.isNotBlank()) {
+                    val habit = Habit(name = name, category = category, subtasks = subtasks)
+                    lifecycleScope.launch {
+                        val id = habitDao.insertHabit(habit)
+                        habit.id = id.toInt()
+                        habits.add(habit)
+                        adapter.notifyItemInserted(habits.size - 1)
+                    }
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Habit cannot be empty",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        // Delete functionality can be removed for "Add Habit"
+        deleteButton.visibility = View.GONE
+
+        dialog.show()
     }
+
 
     // Load habits from database
     private fun loadHabits() {
