@@ -17,6 +17,7 @@ data class Habit(
     var name: String,
     var category: String = "General",
     var isChecked: Boolean = false,
-    var subtasks: MutableList<Subtask> = mutableListOf() // Maak Subtask ook Parcelable
+    var subtasks: MutableList<Subtask> = mutableListOf(), // Maak Subtask ook Parcelable
+    var deadline: String? = null
 ) : Parcelable
 

@@ -1,49 +1,85 @@
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    tools:context=".MainActivity">
 
     <!-- Habit naam invoer -->
     <EditText
         android:id="@+id/habitNameInput"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Enter habit name"
-        android:inputType="text" />
-
-
+        android:inputType="text"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- Categorie spinner -->
     <Spinner
         android:id="@+id/categorySpinner"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintTop_toBottomOf="@id/habitNameInput"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"/>
 
     <!-- Verwijder knop -->
     <Button
         android:id="@+id/deleteHabitButton"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Delete Habit"
         android:textColor="@android:color/holo_red_dark"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintTop_toBottomOf="@id/categorySpinner"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"/>
 
+    <!-- Subtasks container -->
     <LinearLayout
         android:id="@+id/subtasksContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp" />
+        android:padding="8dp"
+        app:layout_constraintTop_toBottomOf="@id/deleteHabitButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
+    <!-- Deadline TextView -->
+    <TextView
+        android:id="@+id/deadlineTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No deadline set"
+        android:padding="16dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/subtasksContainer"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- Set Deadline Button (left aligned) -->
+    <Button
+        android:id="@+id/setDeadlineButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set Deadline"
+        app:layout_constraintTop_toBottomOf="@id/deadlineTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Add Subtask Button (right aligned) -->
     <Button
         android:id="@+id/addSubtaskButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Subtask"
-        android:layout_marginTop="8dp"
-        android:layout_gravity="end" />
+        app:layout_constraintBaseline_toBaselineOf="@id/setDeadlineButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

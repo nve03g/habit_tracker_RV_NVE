@@ -1,6 +1,9 @@
 package com.example.habit_tracker
 
+import DatePickerFragment
+import android.app.DatePickerDialog
 import android.content.Intent
+import android.icu.util.Calendar
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -161,6 +164,8 @@ class MainActivity : AppCompatActivity() {
         val subtasksContainer: LinearLayout = dialogView.findViewById(R.id.subtasksContainer)
         val addSubtaskButton: Button = dialogView.findViewById(R.id.addSubtaskButton)
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
+        val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
+        val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
 
         // Set up Spinner
         val categories = listOf("Work", "Health", "Personal", "Other")
@@ -168,6 +173,14 @@ class MainActivity : AppCompatActivity() {
             ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         categorySpinner.adapter = spinnerAdapter
+
+        // Gebruik DatePickerFragment voor de deadline
+        setDeadlineButton.setOnClickListener {
+            val datePickerFragment = DatePickerFragment { selectedDate ->
+                deadlineTextView.text = selectedDate // Stel de geselecteerde datum in
+            }
+            datePickerFragment.show(supportFragmentManager, "datePicker")
+        }
 
         // Add new subtasks
         addSubtaskButton.setOnClickListener {
@@ -183,6 +196,7 @@ class MainActivity : AppCompatActivity() {
                 val name = inputField.text.toString()
                 val category = categorySpinner.selectedItem.toString()
                 val subtasks = mutableListOf<Subtask>()
+                val deadline = deadlineTextView.text.toString()
 
                 // Retrieve all subtasks
                 for (i in 0 until subtasksContainer.childCount) {
@@ -194,7 +208,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (name.isNotBlank()) {
-                    val habit = Habit(name = name, category = category, subtasks = subtasks)
+                    val habit = Habit(name = name, category = category, subtasks = subtasks, deadline = deadline)
                     lifecycleScope.launch {
                         val id = habitDao.insertHabit(habit)
                         habit.id = id.toInt()
@@ -216,6 +230,34 @@ class MainActivity : AppCompatActivity() {
         deleteButton.visibility = View.GONE
 
         dialog.show()
+    }
+
+    // toon DatePickerDialog
+    private fun showDatePickerDialog(habit: Habit) {
+        val calendar = Calendar.getInstance()
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                // Datum is geselecteerd, sla deze op
+                val selectedDate = "$dayOfMonth/${month + 1}/$year" // Datumformaat: dd/mm/yyyy
+                habit.deadline = selectedDate
+                updateDeadlineTextView(habit)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+        datePickerDialog.show()
+    }
+
+    // Werk de TextView bij om de geselecteerde deadline weer te geven
+    private fun updateDeadlineTextView(habit: Habit) {
+        val deadlineTextView: TextView = findViewById(R.id.deadlineTextView)
+        if (habit.deadline != null) {
+            deadlineTextView.text = "Deadline: ${habit.deadline}"
+        } else {
+            deadlineTextView.text = "No deadline set"
+        }
     }
 
 
@@ -253,15 +295,22 @@ class MainActivity : AppCompatActivity() {
         val subtasksContainer: LinearLayout = dialogView.findViewById(R.id.subtasksContainer)
         val addSubtaskButton: Button = dialogView.findViewById(R.id.addSubtaskButton)
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
+        val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
+        val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
 
         // Pre-fill current habit details
         val habit = habits[position]
         inputField.setText(habit.name)
+
+        // set up category spinner
         val categories = listOf("Work", "Health", "Personal", "Other")
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         categorySpinner.adapter = spinnerAdapter
         categorySpinner.setSelection(categories.indexOf(habit.category))
+
+        // Set up deadline field
+        deadlineTextView.text = habit.deadline ?: "No deadline set"
 
         // Dynamisch subtaken invoegen
         subtasksContainer.removeAllViews()
@@ -274,6 +323,15 @@ class MainActivity : AppCompatActivity() {
         addSubtaskButton.setOnClickListener {
             val newSubtaskView = createSubtaskInput("", subtasksContainer)
             subtasksContainer.addView(newSubtaskView)
+        }
+
+        // Handle setting new deadline
+        setDeadlineButton.setOnClickListener {
+            val datePickerFragment = DatePickerFragment { selectedDate ->
+                habit.deadline = selectedDate
+                deadlineTextView.text = selectedDate // Update de deadline in het dialog
+            }
+            datePickerFragment.show(supportFragmentManager, "datePicker")
         }
 
         // Show dialog
@@ -299,6 +357,7 @@ class MainActivity : AppCompatActivity() {
                     habit.name = name
                     habit.category = category
                     habit.subtasks = updatedSubtasks
+
                     lifecycleScope.launch {
                         habitDao.updateHabit(habit) // Update habit in database
                         adapter.notifyItemChanged(position)

@@ -1,16 +1,16 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="6dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
         <!-- Naam van de hoofdtaak -->
@@ -21,7 +21,10 @@
             android:text="Habit Name"
             android:textStyle="bold"
             android:textSize="18sp"
-            android:paddingBottom="4dp" />
+            android:paddingBottom="4dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <!-- Categorie of andere informatie -->
         <TextView
@@ -31,15 +34,30 @@
             android:text="Category"
             android:textSize="14sp"
             android:textColor="@android:color/darker_gray"
-            android:paddingBottom="8dp" />
+            android:paddingBottom="8dp"
+            app:layout_constraintTop_toBottomOf="@id/habitText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- Deadline TextView -->
+        <TextView
+            android:id="@+id/deadlineTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No deadline set"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/habitCategory"
+            app:layout_constraintStart_toStartOf="parent"/>
 
         <!-- Checkbox voor hoofdtaak -->
         <CheckBox
             android:id="@+id/habitCheckBox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:text="Complete" />
+            android:text="Complete"
+            app:layout_constraintTop_toBottomOf="@id/deadlineTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/deadlineTextView"/>
 
         <!-- Container voor subtasks -->
         <LinearLayout
@@ -48,8 +66,12 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone"
-            android:paddingTop="8dp">
+            android:paddingTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/habitCheckBox"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
             <!-- Subtasks worden hier dynamisch toegevoegd -->
         </LinearLayout>
-    </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

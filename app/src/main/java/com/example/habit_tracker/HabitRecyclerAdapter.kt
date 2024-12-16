@@ -26,6 +26,7 @@ class HabitRecyclerAdapter(
         val habitCategory: TextView = itemView.findViewById(R.id.habitCategory)
         val habitCheckBox: CheckBox = itemView.findViewById(R.id.habitCheckBox)
         val subtasksContainer: LinearLayout = itemView.findViewById(R.id.subtasksContainer)
+        val deadlineTextView: TextView = itemView.findViewById(R.id.deadlineTextView)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HabitViewHolder {
@@ -42,6 +43,10 @@ class HabitRecyclerAdapter(
         holder.habitCategory.text = habit.category
         holder.habitCheckBox.setOnCheckedChangeListener(null) // Verwijder oude listener
         holder.habitCheckBox.isChecked = habit.isChecked
+
+        // Voeg de deadline toe aan de UI
+        val deadlineText = habit.deadline ?: "No deadline"
+        holder.deadlineTextView.text = deadlineText
 
         // Update visuele status
         updateStrikeThrough(holder, habit.isChecked)
