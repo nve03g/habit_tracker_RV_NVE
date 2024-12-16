@@ -15,9 +15,10 @@ import kotlinx.coroutines.launch
 
 class HabitRecyclerAdapter(
     private val habits: MutableList<Habit>,
-    private val onEditHabit: (Int) -> Unit, // Callback
-    private val habitDao: HabitDao, // Voeg habitDao toe
-    private val lifecycleScope: CoroutineScope // Voeg lifecycleScope toe
+    private val onEditHabit: (Int) -> Unit,
+    private val onHabitMoved: (Habit, Boolean) -> Unit, // Nieuwe callback
+    private val habitDao: HabitDao,
+    private val lifecycleScope: CoroutineScope
 ) : RecyclerView.Adapter<HabitRecyclerAdapter.HabitViewHolder>() {
 
     class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -50,20 +51,15 @@ class HabitRecyclerAdapter(
             habit.isChecked = isChecked
             updateStrikeThrough(holder, isChecked)
 
-            // Verwijder het huidige item en voeg het toe aan de juiste positie
-            habits.removeAt(position)
-            if (isChecked) {
-                habits.add(habit) // Voeg onderaan toe
-            } else {
-                habits.add(0, habit) // Voeg bovenaan toe
-            }
-            notifyDataSetChanged() // Update lijst
+            // Verwijder uit huidige lijst en voeg toe aan de andere
+            onHabitMoved(habit, isChecked)
 
-            // Update database
+            // Update de database
             lifecycleScope.launch {
                 habitDao.updateHabit(habit)
             }
         }
+
 
         // Dynamisch subtaken verwerken
         if (habit.subtasks.isNotEmpty()) {
@@ -103,17 +99,6 @@ class HabitRecyclerAdapter(
         holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
             habit.isChecked = isChecked
             updateStrikeThrough(holder, isChecked)
-
-            // Verplaats item in de lijst na de lay-out cyclus
-            Handler(Looper.getMainLooper()).post {
-                habits.removeAt(position)
-                if (isChecked) {
-                    habits.add(habit) // Verplaats naar onderaan
-                } else {
-                    habits.add(0, habit) // Verplaats naar bovenaan
-                }
-                notifyDataSetChanged() // Lijst opnieuw laden
-            }
 
             // Update de habit in de database
             lifecycleScope.launch {

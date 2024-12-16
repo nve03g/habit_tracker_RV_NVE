@@ -6,14 +6,17 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 
-@Entity(tableName = "habits") // Create an entity for the database
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+@Entity(tableName = "habits")
 data class Habit(
     @PrimaryKey(autoGenerate = true)
     var id: Int = 0,
     var name: String,
     var category: String = "General",
     var isChecked: Boolean = false,
-    var subtasks: MutableList<Subtask> = mutableListOf() // Lijst met subtaken
-
-)
+    var subtasks: MutableList<Subtask> = mutableListOf() // Maak Subtask ook Parcelable
+) : Parcelable
 

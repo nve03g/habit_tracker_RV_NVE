@@ -1,5 +1,6 @@
 package com.example.habit_tracker
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -63,7 +64,22 @@ class MainActivity : AppCompatActivity() {
         habits = mutableListOf()
         adapter = HabitRecyclerAdapter(habits, { position ->
             showEditDialog(position)
+        }, { habit, isChecked -> // Nieuwe callback
+            lifecycleScope.launch {
+                if (isChecked) {
+                    // Verwijder van Main en voeg toe aan Completed
+                    habits.remove(habit)
+                    adapter.notifyDataSetChanged()
+
+                    // Start CompletedTasksActivity met de habit
+                    val intent = Intent(this@MainActivity, CompletedTasksActivity::class.java)
+                    intent.putExtra("habit", habit)
+                    startActivity(intent)
+                }
+            }
         }, habitDao, lifecycleScope)
+
+
 
 
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -108,12 +124,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             completedButton.setOnClickListener {
-                Toast.makeText(this, "Completed", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, CompletedTasksActivity::class.java)
+                startActivity(intent)
             }
 
-            tasksButton.setOnClickListener { // Nieuwe logica
-                Toast.makeText(this, "Tasks", Toast.LENGTH_SHORT).show()
+            tasksButton.setOnClickListener {
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
             }
+
 
             // Toon de dialog
             dialog.show()
