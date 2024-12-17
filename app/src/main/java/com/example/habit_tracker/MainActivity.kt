@@ -3,6 +3,7 @@ package com.example.habit_tracker
 import DatePickerFragment
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.graphics.Color
 import android.icu.util.Calendar
 import android.os.Bundle
 import android.view.Gravity
@@ -17,6 +18,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AppCompatDelegate
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.google.android.material.appbar.MaterialToolbar
 
 
@@ -121,7 +126,8 @@ class MainActivity : AppCompatActivity() {
 
             // Functies toevoegen (voorlopig leeg)
             statisticsButton.setOnClickListener {
-                Toast.makeText(this, "Statistieken", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, StatisticsActivity::class.java)
+                startActivity(intent)
             }
 
             completedButton.setOnClickListener {

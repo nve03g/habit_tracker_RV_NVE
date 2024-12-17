@@ -30,6 +30,8 @@
 
         <activity android:name=".CompletedTasksActivity" />
 
+        <activity android:name=".StatisticsActivity" />
+
 
     </application>
 
