@@ -2,8 +2,12 @@ package com.example.habit_tracker
 
 import DatePickerFragment
 import android.app.Activity
+import android.app.AlarmManager
 import android.app.DatePickerDialog
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.icu.util.Calendar
 import android.net.Uri
@@ -22,11 +26,20 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.google.android.material.appbar.MaterialToolbar
+import java.text.SimpleDateFormat
+import java.util.Locale
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+import androidx.core.app.NotificationCompat
 
 
 class MainActivity : AppCompatActivity() {
@@ -42,6 +55,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Controleer en vraag POST_NOTIFICATIONS-toestemming
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         // zet de layout
         setContentView(R.layout.activity_main)
 
@@ -208,6 +231,51 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Toestemming voor meldingen toegestaan", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Meldingen zijn geweigerd", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun setNotification(habit: Habit) {
+        if (habit.deadline.isNullOrBlank()) return
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val deadlineDate = sdf.parse(habit.deadline)?.time ?: return
+
+        // Bereken 1 dag op voorhand
+        val triggerTime = deadlineDate - 24 * 60 * 60 * 1000 // System.currentTimeMillis() + 10 * 1000
+
+        if (triggerTime < System.currentTimeMillis()) return // Voorkom oude meldingen
+
+        // Intent voor de BroadcastReceiver
+        val intent = Intent(this, NotificationReceiver::class.java).apply {
+            putExtra("habit_name", habit.name)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            habit.id, // Unieke ID per habit
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Stel de alarm in
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+    }
+
     // add new habits
     private fun showAddDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
@@ -263,18 +331,6 @@ class MainActivity : AppCompatActivity() {
                 val subtasks = mutableListOf<Subtask>()
                 val deadline = deadlineTextView.text.toString()
 
-                // save image
-                if (name.isNotBlank()) {
-                    val habit = Habit(
-                        name = name,
-                        category = category,
-                        subtasks = subtasks,
-                        deadline = deadline,
-                        imageUri = selectedImageUri.toString() // Bewaar de afbeelding URI
-                    )
-                    // Opslaan in de database
-                }
-
                 // Retrieve all subtasks
                 for (i in 0 until subtasksContainer.childCount) {
                     val container = subtasksContainer.getChildAt(i) as LinearLayout
@@ -292,12 +348,14 @@ class MainActivity : AppCompatActivity() {
                         category = category,
                         subtasks = subtasks,
                         deadline = deadline,
-                        imageUri = selectedImageUri?.toString() ?: "" // Zet null om naar lege string
+                        imageUri = selectedImageUri?.toString() ?: "" // save image, Zet null om naar lege string
                     )
                     lifecycleScope.launch {
                         val id = habitDao.insertHabit(habit)
                         habit.id = id.toInt()
                         habits.add(habit)
+                        setNotification(habit)
+                        sendImmediateNotification(habit.name ?: "Unnamed Habit", habit.deadline ?: "Geen deadline ingesteld")
                         adapter.notifyItemInserted(habits.size - 1)
                     }
                 } else {
@@ -315,6 +373,32 @@ class MainActivity : AppCompatActivity() {
         deleteButton.visibility = View.GONE
 
         dialog.show()
+    }
+
+    private fun sendImmediateNotification(habitName: String, deadline: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "habit_deadline_channel"
+
+        // Creëer het Notification Channel (voor Android 8.0 en hoger)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Habit Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // Bouw de notificatie
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Habit Deadline Set")
+            .setContentText("Deadline voor '$habitName' is ingesteld op $deadline.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        // Toon de notificatie
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     // toon DatePickerDialog
