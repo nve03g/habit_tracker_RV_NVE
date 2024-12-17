@@ -25,7 +25,9 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.launch
 
@@ -43,7 +45,7 @@ class StatisticsActivity : AppCompatActivity() {
 
         // roep de functie aan om de grafiek in te stellen
         setupCompletionChart()
-
+        setupCategoryPerformanceChart()
 
         val topAppBar: MaterialToolbar = findViewById(R.id.topAppBar)
         setSupportActionBar(topAppBar)
@@ -153,6 +155,75 @@ class StatisticsActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupCategoryPerformanceChart() {
+        lifecycleScope.launch {
+            // Haal alle habits op vanuit de database
+            val allHabits = habitDao.getAllHabits()
+
+            // Groepeer habits per categorie en bereken voltooiingspercentage
+            val categoryMap = allHabits.groupBy { it.category } // Groepeer op categorie
+            val entries = mutableListOf<BarEntry>()
+            val categories = mutableListOf<String>()
+
+            categoryMap.entries.forEachIndexed { index, entry ->
+                val categoryName = entry.key ?: "Onbekend" // Default naam als categorie null is
+                val habitsInCategory = entry.value
+                val completedCount = habitsInCategory.count { it.isChecked }
+                val completionPercentage = if (habitsInCategory.isNotEmpty()) {
+                    (completedCount.toFloat() / habitsInCategory.size) * 100
+                } else {
+                    0f
+                }
+
+                // Voeg een BarEntry toe: index op X-as en percentage op Y-as
+                entries.add(BarEntry(index.toFloat(), completionPercentage))
+                categories.add(categoryName) // Sla de categorienaam op voor de labels
+            }
+
+            // Maak een dataset
+            val dataSet = BarDataSet(entries, "Prestaties per Categorie")
+            dataSet.colors = ColorTemplate.MATERIAL_COLORS.toList() // Kleurrijke balken
+            dataSet.valueTextSize = 12f
+            dataSet.valueFormatter = object : ValueFormatter() { // Toon gehele getallen
+                override fun getFormattedValue(value: Float): String {
+                    return "${value.toInt()}%"
+                }
+            }
+
+            val barData = BarData(dataSet)
+            barData.barWidth = 0.8f
+
+            // Configureer de grafiek
+            val categoryChart: BarChart = findViewById(R.id.categoryChart)
+            categoryChart.data = barData
+            categoryChart.description.isEnabled = false
+            categoryChart.setExtraOffsets(10f, 10f, 10f, 10f)
+
+            // X-as configuratie
+            val xAxis = categoryChart.xAxis
+            xAxis.position = XAxis.XAxisPosition.BOTTOM
+            xAxis.valueFormatter = IndexAxisValueFormatter(categories) // Labels voor categorieën
+            xAxis.granularity = 1f
+            xAxis.setDrawGridLines(false)
+            xAxis.textSize = 12f
+
+            // Y-as configuratie
+            val leftAxis = categoryChart.axisLeft
+            leftAxis.axisMinimum = 0f
+            leftAxis.axisMaximum = 100f // Percentage van 0-100%
+            leftAxis.setDrawGridLines(true)
+
+            val rightAxis = categoryChart.axisRight
+            rightAxis.isEnabled = false // Verberg rechter Y-as
+
+            // Legende
+            val legend = categoryChart.legend
+            legend.isEnabled = false
+            legend.textSize = 12f
+
+            categoryChart.invalidate() // Vernieuw de grafiek
+        }
+    }
 
 
 }

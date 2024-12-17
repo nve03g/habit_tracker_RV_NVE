@@ -53,6 +53,29 @@
         app:layout_constraintHeight_default="wrap"
         app:layout_constraintHeight_max="100dp"/>
 
+    <!-- Titel boven de grafiek -->
+    <TextView
+        android:id="@+id/categoryChartTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Prestaties per categorie"
+        android:textAlignment="center"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_gravity="center_horizontal"
+        app:layout_constraintTop_toBottomOf="@id/completionChart"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="35dp"/>
 
+    <com.github.mikephil.charting.charts.BarChart
+        android:id="@+id/categoryChart"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_margin="10dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/categoryChartTitle"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
