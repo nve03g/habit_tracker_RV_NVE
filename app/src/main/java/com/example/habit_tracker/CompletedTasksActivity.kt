@@ -63,7 +63,8 @@ class CompletedTasksActivity : AppCompatActivity() {
             val tasksButton: Button = dialogView.findViewById(R.id.tasksButton)
 
             statisticsButton.setOnClickListener {
-                Toast.makeText(this, "Statistieken", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, StatisticsActivity::class.java)
+                startActivity(intent)
             }
 
             completedButton.setOnClickListener {
