@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // zet de layout
         setContentView(R.layout.activity_main)
 
         // set up toolbar
@@ -81,9 +82,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, habitDao, lifecycleScope)
-
-
-
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -147,6 +145,29 @@ class MainActivity : AppCompatActivity() {
             window?.setBackgroundDrawableResource(android.R.color.transparent) // Zorg voor een transparante achtergrond
         }
 
+        // swipe item to the left to delete from list
+        val itemTouchHelper = ItemTouchHelper(object: ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val habit = habits[position]
+
+                // Verwijder het habit-item uit de database
+                lifecycleScope.launch {
+                    habitDao.deleteHabit(habit) // Verwijder het item uit de database
+                }
+
+                // Verwijder het habit-item uit de lijst en werk de UI bij
+                habits.removeAt(position)
+                adapter.notifyItemRemoved(position)
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(recyclerView)
 
         // Add new habit with subtasks
         addHabitButton.setOnClickListener {
