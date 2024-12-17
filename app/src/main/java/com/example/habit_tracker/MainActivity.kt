@@ -1,15 +1,19 @@
 package com.example.habit_tracker
 
 import DatePickerFragment
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.graphics.Color
 import android.icu.util.Calendar
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,6 +35,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var habitDao: HabitDao
     private lateinit var habits: MutableList<Habit>
     private lateinit var adapter: HabitRecyclerAdapter
+
+    private lateinit var pickImageLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
+    private var selectedImageUri: Uri? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +76,23 @@ class MainActivity : AppCompatActivity() {
         val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
         val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
         val categoryFilterSpinner: Spinner = findViewById(R.id.categoryFilterSpinner)
+
+        // initialize image launcher
+        try {
+
+            pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK && result.data?.data != null) {
+                    selectedImageUri = result.data?.data
+                    // Werk de ImageView bij
+                    currentImageView?.setImageURI(selectedImageUri)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error initializing image picker", Toast.LENGTH_SHORT).show()
+        }
+
+
 
         // Initialize habit list and adapter
         habits = mutableListOf()
@@ -194,6 +219,19 @@ class MainActivity : AppCompatActivity() {
         val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
         val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
 
+        val habitImageView: ImageView = dialogView.findViewById(R.id.habitImageView)
+        val selectImageButton: Button = dialogView.findViewById(R.id.selectImageButton)
+
+        // Select Image knop logica
+        selectImageButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            pickImageLauncher.launch(intent)
+        }
+
+        // Voorkom crash bij een null URI
+        habitImageView.setImageURI(selectedImageUri ?: Uri.parse("android.resource://$packageName/drawable/ic_menu_gallery"))
+
         // Set up Spinner
         val categories = listOf("Work", "Health", "Personal", "Other")
         val spinnerAdapter =
@@ -225,6 +263,18 @@ class MainActivity : AppCompatActivity() {
                 val subtasks = mutableListOf<Subtask>()
                 val deadline = deadlineTextView.text.toString()
 
+                // save image
+                if (name.isNotBlank()) {
+                    val habit = Habit(
+                        name = name,
+                        category = category,
+                        subtasks = subtasks,
+                        deadline = deadline,
+                        imageUri = selectedImageUri.toString() // Bewaar de afbeelding URI
+                    )
+                    // Opslaan in de database
+                }
+
                 // Retrieve all subtasks
                 for (i in 0 until subtasksContainer.childCount) {
                     val container = subtasksContainer.getChildAt(i) as LinearLayout
@@ -235,7 +285,15 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (name.isNotBlank()) {
-                    val habit = Habit(name = name, category = category, subtasks = subtasks, deadline = deadline)
+                    Log.d("HabitDebug", "Selected Image URI: ${selectedImageUri?.toString() ?: "null"}")
+
+                    val habit = Habit(
+                        name = name,
+                        category = category,
+                        subtasks = subtasks,
+                        deadline = deadline,
+                        imageUri = selectedImageUri?.toString() ?: "" // Zet null om naar lege string
+                    )
                     lifecycleScope.launch {
                         val id = habitDao.insertHabit(habit)
                         habit.id = id.toInt()
@@ -313,6 +371,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var currentImageView: ImageView? = null // Huidige ImageView voor edit
+
 
     // Function to display edit dialog
     private fun showEditDialog(position: Int) {
@@ -324,94 +384,57 @@ class MainActivity : AppCompatActivity() {
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
         val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
         val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
+        val habitImageView: ImageView = dialogView.findViewById(R.id.habitImageView)
+        val selectImageButton: Button = dialogView.findViewById(R.id.selectImageButton)
 
-        // Pre-fill current habit details
         val habit = habits[position]
         inputField.setText(habit.name)
+        deadlineTextView.text = habit.deadline ?: "No deadline set"
 
-        // set up category spinner
+        // Toon bestaande afbeelding, indien aanwezig
+        if (habit.imageUri != null && habit.imageUri!!.isNotBlank()) {
+            habitImageView.setImageURI(Uri.parse(habit.imageUri))
+        } else {
+            habitImageView.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+
+        // Variabele om de nieuwe afbeelding URI bij te houden
+        var newImageUri: Uri? = null
+
+        // Gebruik de bestaande pickImageLauncher
+        selectImageButton.setOnClickListener {
+            currentImageView = habitImageView // Update de huidige ImageView
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            pickImageLauncher.launch(intent)
+        }
+
+        // Spinner-logica
         val categories = listOf("Work", "Health", "Personal", "Other")
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         categorySpinner.adapter = spinnerAdapter
         categorySpinner.setSelection(categories.indexOf(habit.category))
 
-        // Set up deadline field
-        deadlineTextView.text = habit.deadline ?: "No deadline set"
-
-        // Dynamisch subtaken invoegen
-        subtasksContainer.removeAllViews()
-        habit.subtasks.forEach { subtask ->
-            val subtaskView = createSubtaskInput(subtask.name, subtasksContainer)
-            subtasksContainer.addView(subtaskView)
-        }
-
-        // Voeg nieuwe subtaken toe
-        addSubtaskButton.setOnClickListener {
-            val newSubtaskView = createSubtaskInput("", subtasksContainer)
-            subtasksContainer.addView(newSubtaskView)
-        }
-
-        // Handle setting new deadline
-        setDeadlineButton.setOnClickListener {
-            val datePickerFragment = DatePickerFragment { selectedDate ->
-                habit.deadline = selectedDate
-                deadlineTextView.text = selectedDate // Update de deadline in het dialog
-            }
-            datePickerFragment.show(supportFragmentManager, "datePicker")
-        }
-
-        // Show dialog
+        // Positive button om wijzigingen op te slaan
         val dialog = android.app.AlertDialog.Builder(this)
             .setTitle("Edit Habit")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                val name = inputField.text.toString()
-                val category = categorySpinner.selectedItem.toString()
-                val updatedSubtasks = mutableListOf<Subtask>()
+                habit.name = inputField.text.toString()
+                habit.category = categorySpinner.selectedItem.toString()
+                habit.imageUri = newImageUri?.toString() ?: habit.imageUri // Bewaar nieuwe afbeelding indien gekozen
 
-                // Haal alle subtaken op
-                for (i in 0 until subtasksContainer.childCount) {
-                    val container = subtasksContainer.getChildAt(i) as LinearLayout
-                    val subtaskInput = container.getChildAt(0) as EditText
-                    val subtaskName = subtaskInput.text.toString().trim()
-                    if (subtaskName.isNotEmpty()) {
-                        updatedSubtasks.add(Subtask(subtaskName))
-                    }
-                }
-
-                if (name.isNotBlank()) {
-                    habit.name = name
-                    habit.category = category
-                    habit.subtasks = updatedSubtasks
-
-                    lifecycleScope.launch {
-                        habitDao.updateHabit(habit) // Update habit in database
-                        adapter.notifyItemChanged(position)
-                    }
-                } else {
-                    android.widget.Toast.makeText(
-                        this,
-                        "Habit cannot be empty",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                lifecycleScope.launch {
+                    habitDao.updateHabit(habit)
+                    adapter.notifyItemChanged(position)
                 }
             }
             .setNegativeButton("Cancel", null)
             .create()
 
-        // Verwijder habit functionaliteit
-        deleteButton.setOnClickListener {
-            lifecycleScope.launch {
-                habitDao.deleteHabit(habit)
-                habits.removeAt(position)
-                adapter.notifyItemRemoved(position)
-                dialog.dismiss()
-            }
-        }
-
         dialog.show()
     }
+
 
     // Hulpmethode om een nieuw invoerveld met verwijderknop te maken
     private fun createSubtaskInput(initialText: String, subtasksContainer: LinearLayout): LinearLayout {
