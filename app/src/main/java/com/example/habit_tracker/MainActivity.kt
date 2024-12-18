@@ -560,6 +560,20 @@ class MainActivity : AppCompatActivity() {
             pickImageLauncher.launch(intent)
         }
 
+        // Gebruik DatePickerFragment voor de deadline
+        setDeadlineButton.setOnClickListener {
+            val datePickerFragment = DatePickerFragment { selectedDate ->
+                deadlineTextView.text = selectedDate // Stel de geselecteerde datum in
+            }
+            datePickerFragment.show(supportFragmentManager, "datePicker")
+        }
+
+        // Add new subtasks
+        addSubtaskButton.setOnClickListener {
+            val newSubtaskView = createSubtaskInput("", subtasksContainer)
+            subtasksContainer.addView(newSubtaskView)
+        }
+
         // Spinner-logica
         val categories = listOf("Work", "Health", "Personal", "Other")
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
@@ -571,17 +585,50 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Edit Habit")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                habit.name = inputField.text.toString()
-                habit.category = categorySpinner.selectedItem.toString()
-                habit.imageUri = newImageUri?.toString() ?: habit.imageUri // Bewaar nieuwe afbeelding indien gekozen
+                val name = inputField.text.toString()
+                val category = categorySpinner.selectedItem.toString()
+                val updatedSubtasks = mutableListOf<Subtask>()
+                val deadline = deadlineTextView.text.toString()
 
-                lifecycleScope.launch {
-                    habitDao.updateHabit(habit)
-                    adapter.notifyItemChanged(position)
+                // haal alle subtaken op
+                for (i in 0 until subtasksContainer.childCount) {
+                    val container = subtasksContainer.getChildAt(i) as LinearLayout
+                    val subtaskInput = container.getChildAt(0) as EditText
+                    val subtaskName = subtaskInput.text.toString().trim()
+                    if (subtaskName.isNotEmpty()) {
+                        updatedSubtasks.add(Subtask(subtaskName))
+                    }
+                }
+                if (name.isNotBlank()) {
+                    habit.name = name
+                    habit.category = category
+                    habit.subtasks = updatedSubtasks
+                    habit.deadline = deadline
+                    habit.imageUri = newImageUri?.toString() ?: habit.imageUri // Bewaar nieuwe afbeelding indien gekozen
+
+                    lifecycleScope.launch {
+                        habitDao.updateHabit(habit)
+                        adapter.notifyItemChanged(position)
+                    }
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        "Habit cannot be empty",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .setNegativeButton("Cancel", null)
             .create()
+        // Verwijder habit functionaliteit
+        deleteButton.setOnClickListener {
+            lifecycleScope.launch {
+                habitDao.deleteHabit(habit)
+                habits.removeAt(position)
+                adapter.notifyItemRemoved(position)
+                dialog.dismiss()
+            }
+        }
 
         dialog.show()
     }
