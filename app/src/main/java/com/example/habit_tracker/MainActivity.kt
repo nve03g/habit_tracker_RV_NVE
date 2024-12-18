@@ -64,6 +64,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+                val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                startActivity(intent) // Redirect user to allow scheduling alarms
+            }
+        }
+
         // Controleer en vraag POST_NOTIFICATIONS-toestemming
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -317,7 +324,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun setNotification(habit: Habit) {
-        if (habit.deadline.isNullOrBlank() || habit.deadline == "No deadline set") return
+        if (habit.deadline.isNullOrBlank()) return
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -338,11 +345,17 @@ class MainActivity : AppCompatActivity() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            // Use exact alarm if permissions are granted
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent) // Fallback for approximate alarm
+            }
         } catch (e: ParseException) {
             Log.e("SetNotification", "Invalid date format: ${habit.deadline}", e)
         }
     }
+
 
     // add new habits
     private fun showAddDialog() {
