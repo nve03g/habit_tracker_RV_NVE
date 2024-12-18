@@ -1,14 +1,11 @@
 package com.example.habit_tracker
 
-import android.media.Image
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
@@ -50,20 +47,6 @@ class HabitRecyclerAdapter(
         // Voeg de deadline toe aan de UI
         val deadlineText = habit.deadline ?: "No deadline"
         holder.deadlineTextView.text = deadlineText
-
-        // voeg image toe
-        val habitImageView: ImageView = holder.itemView.findViewById(R.id.habitImageView)
-        try {
-            if (habit.imageUri != null && habit.imageUri!!.isNotBlank()) {
-                habitImageView.setImageURI(Uri.parse(habit.imageUri))
-            } else {
-                habitImageView.setImageResource(android.R.drawable.ic_menu_gallery)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            habitImageView.setImageResource(android.R.drawable.ic_menu_gallery)
-        }
-
 
         // Update visuele status
         updateStrikeThrough(holder, habit.isChecked)

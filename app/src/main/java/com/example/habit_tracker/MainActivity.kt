@@ -1,24 +1,15 @@
 package com.example.habit_tracker
 
 import DatePickerFragment
-import android.app.Activity
-import android.app.AlarmManager
 import android.app.DatePickerDialog
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
-//import android.icu.util.Calendar
-import java.util.Calendar
-import android.net.Uri
+import android.icu.util.Calendar
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,26 +18,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.google.android.material.appbar.MaterialToolbar
-import java.text.SimpleDateFormat
-import java.util.Locale
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.os.Build
-import androidx.core.app.NotificationCompat
-import com.example.habit_tracker.network.QuotesRepository
-//import com.example.habittracker.data.repository.QuotesRepository
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.ExistingPeriodicWorkPolicy
-import java.util.concurrent.TimeUnit
 
 
 class MainActivity : AppCompatActivity() {
@@ -56,33 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var habits: MutableList<Habit>
     private lateinit var adapter: HabitRecyclerAdapter
 
-    private lateinit var pickImageLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
-    private var selectedImageUri: Uri? = null
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Controleer en vraag POST_NOTIFICATIONS-toestemming
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
-        }
-
         // zet de layout
         setContentView(R.layout.activity_main)
-
-        // Haal een dagelijkse motivatiequote op en toon deze
-        val quotesRepository = QuotesRepository()
-        quotesRepository.fetchQuote("gx25opPAZ57nRy/L40ZACw==3ABDh7gOD4447zKe") { quote ->
-            sendDailyNotification(quote)
-        }
-
-        // Plan dagelijkse notificatie om 9u met WorkManager
-        scheduleDailyQuote()
 
         // set up toolbar
         setSupportActionBar(findViewById(R.id.topAppBar))
@@ -115,23 +68,6 @@ class MainActivity : AppCompatActivity() {
         val recyclerView: RecyclerView = findViewById(R.id.habitRecyclerView)
         val addHabitButton: FloatingActionButton = findViewById(R.id.addHabitButton)
         val categoryFilterSpinner: Spinner = findViewById(R.id.categoryFilterSpinner)
-
-        // initialize image launcher
-        try {
-
-            pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == Activity.RESULT_OK && result.data?.data != null) {
-                    selectedImageUri = result.data?.data
-                    // Werk de ImageView bij
-                    currentImageView?.setImageURI(selectedImageUri)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error initializing image picker", Toast.LENGTH_SHORT).show()
-        }
-
-
 
         // Initialize habit list and adapter
         habits = mutableListOf()
@@ -247,102 +183,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun scheduleDailyQuote() {
-        val currentTime = Calendar.getInstance()
-        val targetTime = java.util.Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 9)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-        }
-
-        if (currentTime.after(targetTime)) {
-            targetTime.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        val initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
-
-        val dailyWorkRequest = PeriodicWorkRequestBuilder<QuoteWorker>(24, TimeUnit.HOURS)
-            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "DailyQuoteWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
-            dailyWorkRequest
-        )
-    }
-
-    private fun sendDailyNotification(quote: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "daily_quote_channel"
-
-        // Maak een notificatiekanaal aan voor Android 8.0+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Dagelijkse Motivatie",
-                NotificationManager.IMPORTANCE_HIGH
-            )
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Dagelijkse Motivatie")
-            .setContentText(quote)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(quote)) // Voor langere teksten
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-
-        notificationManager.notify(1, notification)
-    }
-
-
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 101) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Toestemming voor meldingen toegestaan", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Meldingen zijn geweigerd", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-    private fun setNotification(habit: Habit) {
-        if (habit.deadline.isNullOrBlank()) return
-
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val deadlineDate = sdf.parse(habit.deadline)?.time ?: return
-
-        // Bereken 1 dag op voorhand
-        val triggerTime = deadlineDate - 24 * 60 * 60 * 1000 // System.currentTimeMillis() + 10 * 1000
-
-        if (triggerTime < System.currentTimeMillis()) return // Voorkom oude meldingen
-
-        // Intent voor de BroadcastReceiver
-        val intent = Intent(this, NotificationReceiver::class.java).apply {
-            putExtra("habit_name", habit.name)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            habit.id, // Unieke ID per habit
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Stel de alarm in
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-    }
-
     // add new habits
     private fun showAddDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
@@ -353,19 +193,6 @@ class MainActivity : AppCompatActivity() {
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
         val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
         val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
-
-        val habitImageView: ImageView = dialogView.findViewById(R.id.habitImageView)
-        val selectImageButton: Button = dialogView.findViewById(R.id.selectImageButton)
-
-        // Select Image knop logica
-        selectImageButton.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            pickImageLauncher.launch(intent)
-        }
-
-        // Voorkom crash bij een null URI
-        habitImageView.setImageURI(selectedImageUri ?: Uri.parse("android.resource://$packageName/drawable/ic_menu_gallery"))
 
         // Set up Spinner
         val categories = listOf("Work", "Health", "Personal", "Other")
@@ -408,21 +235,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (name.isNotBlank()) {
-                    Log.d("HabitDebug", "Selected Image URI: ${selectedImageUri?.toString() ?: "null"}")
-
-                    val habit = Habit(
-                        name = name,
-                        category = category,
-                        subtasks = subtasks,
-                        deadline = deadline,
-                        imageUri = selectedImageUri?.toString() ?: "" // save image, Zet null om naar lege string
-                    )
+                    val habit = Habit(name = name, category = category, subtasks = subtasks, deadline = deadline)
                     lifecycleScope.launch {
                         val id = habitDao.insertHabit(habit)
                         habit.id = id.toInt()
                         habits.add(habit)
-                        setNotification(habit)
-                        sendImmediateNotification(habit.name ?: "Unnamed Habit", habit.deadline ?: "Geen deadline ingesteld")
                         adapter.notifyItemInserted(habits.size - 1)
                     }
                 } else {
@@ -440,32 +257,6 @@ class MainActivity : AppCompatActivity() {
         deleteButton.visibility = View.GONE
 
         dialog.show()
-    }
-
-    private fun sendImmediateNotification(habitName: String, deadline: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "habit_deadline_channel"
-
-        // Creëer het Notification Channel (voor Android 8.0 en hoger)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Habit Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            )
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        // Bouw de notificatie
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Habit Deadline Set")
-            .setContentText("Deadline voor '$habitName' is ingesteld op $deadline.")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-
-        // Toon de notificatie
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     // toon DatePickerDialog
@@ -522,8 +313,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var currentImageView: ImageView? = null // Huidige ImageView voor edit
-
 
     // Function to display edit dialog
     private fun showEditDialog(position: Int) {
@@ -535,57 +324,94 @@ class MainActivity : AppCompatActivity() {
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
         val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
         val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
-        val habitImageView: ImageView = dialogView.findViewById(R.id.habitImageView)
-        val selectImageButton: Button = dialogView.findViewById(R.id.selectImageButton)
 
+        // Pre-fill current habit details
         val habit = habits[position]
         inputField.setText(habit.name)
-        deadlineTextView.text = habit.deadline ?: "No deadline set"
 
-        // Toon bestaande afbeelding, indien aanwezig
-        if (habit.imageUri != null && habit.imageUri!!.isNotBlank()) {
-            habitImageView.setImageURI(Uri.parse(habit.imageUri))
-        } else {
-            habitImageView.setImageResource(android.R.drawable.ic_menu_gallery)
-        }
-
-        // Variabele om de nieuwe afbeelding URI bij te houden
-        var newImageUri: Uri? = null
-
-        // Gebruik de bestaande pickImageLauncher
-        selectImageButton.setOnClickListener {
-            currentImageView = habitImageView // Update de huidige ImageView
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            pickImageLauncher.launch(intent)
-        }
-
-        // Spinner-logica
+        // set up category spinner
         val categories = listOf("Work", "Health", "Personal", "Other")
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         categorySpinner.adapter = spinnerAdapter
         categorySpinner.setSelection(categories.indexOf(habit.category))
 
-        // Positive button om wijzigingen op te slaan
+        // Set up deadline field
+        deadlineTextView.text = habit.deadline ?: "No deadline set"
+
+        // Dynamisch subtaken invoegen
+        subtasksContainer.removeAllViews()
+        habit.subtasks.forEach { subtask ->
+            val subtaskView = createSubtaskInput(subtask.name, subtasksContainer)
+            subtasksContainer.addView(subtaskView)
+        }
+
+        // Voeg nieuwe subtaken toe
+        addSubtaskButton.setOnClickListener {
+            val newSubtaskView = createSubtaskInput("", subtasksContainer)
+            subtasksContainer.addView(newSubtaskView)
+        }
+
+        // Handle setting new deadline
+        setDeadlineButton.setOnClickListener {
+            val datePickerFragment = DatePickerFragment { selectedDate ->
+                habit.deadline = selectedDate
+                deadlineTextView.text = selectedDate // Update de deadline in het dialog
+            }
+            datePickerFragment.show(supportFragmentManager, "datePicker")
+        }
+
+        // Show dialog
         val dialog = android.app.AlertDialog.Builder(this)
             .setTitle("Edit Habit")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                habit.name = inputField.text.toString()
-                habit.category = categorySpinner.selectedItem.toString()
-                habit.imageUri = newImageUri?.toString() ?: habit.imageUri // Bewaar nieuwe afbeelding indien gekozen
+                val name = inputField.text.toString()
+                val category = categorySpinner.selectedItem.toString()
+                val updatedSubtasks = mutableListOf<Subtask>()
 
-                lifecycleScope.launch {
-                    habitDao.updateHabit(habit)
-                    adapter.notifyItemChanged(position)
+                // Haal alle subtaken op
+                for (i in 0 until subtasksContainer.childCount) {
+                    val container = subtasksContainer.getChildAt(i) as LinearLayout
+                    val subtaskInput = container.getChildAt(0) as EditText
+                    val subtaskName = subtaskInput.text.toString().trim()
+                    if (subtaskName.isNotEmpty()) {
+                        updatedSubtasks.add(Subtask(subtaskName))
+                    }
+                }
+
+                if (name.isNotBlank()) {
+                    habit.name = name
+                    habit.category = category
+                    habit.subtasks = updatedSubtasks
+
+                    lifecycleScope.launch {
+                        habitDao.updateHabit(habit) // Update habit in database
+                        adapter.notifyItemChanged(position)
+                    }
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        "Habit cannot be empty",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .setNegativeButton("Cancel", null)
             .create()
 
+        // Verwijder habit functionaliteit
+        deleteButton.setOnClickListener {
+            lifecycleScope.launch {
+                habitDao.deleteHabit(habit)
+                habits.removeAt(position)
+                adapter.notifyItemRemoved(position)
+                dialog.dismiss()
+            }
+        }
+
         dialog.show()
     }
-
 
     // Hulpmethode om een nieuw invoerveld met verwijderknop te maken
     private fun createSubtaskInput(initialText: String, subtasksContainer: LinearLayout): LinearLayout {

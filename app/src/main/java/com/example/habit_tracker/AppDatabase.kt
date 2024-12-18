@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Habit::class], version = 5, exportSchema = false) // Verhoogde versie
+@Database(entities = [Habit::class], version = 4, exportSchema = false) // Verhoogde versie
 @TypeConverters(SubtaskConverter::class) // Registreer de TypeConverter voor subtaken
 abstract class AppDatabase : RoomDatabase() {
 
@@ -33,13 +33,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                // Voeg de nieuwe kolom imageUri toe aan de habits tabel
-                database.execSQL("ALTER TABLE habits ADD COLUMN imageUri TEXT")
-            }
-        }
-
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -49,7 +42,6 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRATION_2_3) // Voeg migraties toe
                     .addMigrations(MIGRATION_3_4)
-                    .addMigrations(MIGRATION_4_5)
                     .fallbackToDestructiveMigration() // Optioneel: verwijder bestaande gegevens bij schemawijziging
                     .build()
                 INSTANCE = instance

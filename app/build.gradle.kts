@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.habit_tracker"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -38,13 +38,6 @@ android {
 }
 
 dependencies {
-
-    implementation ("androidx.work:work-runtime-ktx:2.8.0")
-
-
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
-
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 

@@ -28,30 +28,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
 
-    <ImageView
-        android:id="@+id/habitImageView"
-        android:layout_width="150dp"
-        android:layout_height="110dp"
-        android:layout_marginTop="16dp"
-        android:layout_gravity="center"
-        android:src="@android:drawable/ic_menu_camera"
-        android:contentDescription="Habit Image"
-        app:layout_constraintTop_toBottomOf="@id/categorySpinner"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/selectImageButton"
-        android:layout_marginEnd="40dp"/>
-
-    <Button
-        android:id="@+id/selectImageButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Image"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="30dp"
-        android:layout_marginEnd="20dp"
-        app:layout_constraintBottom_toTopOf="@id/deleteHabitButton"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
     <!-- Verwijder knop -->
     <Button
         android:id="@+id/deleteHabitButton"
@@ -59,7 +35,7 @@
         android:layout_height="wrap_content"
         android:text="Delete Habit"
         android:textColor="@android:color/holo_red_dark"
-        app:layout_constraintTop_toBottomOf="@id/habitImageView"
+        app:layout_constraintTop_toBottomOf="@id/categorySpinner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
