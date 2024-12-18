@@ -9,7 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.icu.util.Calendar
+//import android.icu.util.Calendar
+import java.util.Calendar
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -40,6 +41,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.example.habit_tracker.network.QuotesRepository
+//import com.example.habittracker.data.repository.QuotesRepository
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.ExistingPeriodicWorkPolicy
+import java.util.concurrent.TimeUnit
 
 
 class MainActivity : AppCompatActivity() {
@@ -67,6 +74,15 @@ class MainActivity : AppCompatActivity() {
 
         // zet de layout
         setContentView(R.layout.activity_main)
+
+        // Haal een dagelijkse motivatiequote op en toon deze
+        val quotesRepository = QuotesRepository()
+        quotesRepository.fetchQuote("gx25opPAZ57nRy/L40ZACw==3ABDh7gOD4447zKe") { quote ->
+            sendDailyNotification(quote)
+        }
+
+        // Plan dagelijkse notificatie om 9u met WorkManager
+        scheduleDailyQuote()
 
         // set up toolbar
         setSupportActionBar(findViewById(R.id.topAppBar))
@@ -230,6 +246,57 @@ class MainActivity : AppCompatActivity() {
 
 
     }
+
+    private fun scheduleDailyQuote() {
+        val currentTime = Calendar.getInstance()
+        val targetTime = java.util.Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+        }
+
+        if (currentTime.after(targetTime)) {
+            targetTime.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        val initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
+
+        val dailyWorkRequest = PeriodicWorkRequestBuilder<QuoteWorker>(24, TimeUnit.HOURS)
+            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "DailyQuoteWorker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            dailyWorkRequest
+        )
+    }
+
+    private fun sendDailyNotification(quote: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "daily_quote_channel"
+
+        // Maak een notificatiekanaal aan voor Android 8.0+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Dagelijkse Motivatie",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Dagelijkse Motivatie")
+            .setContentText(quote)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(quote)) // Voor langere teksten
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        notificationManager.notify(1, notification)
+    }
+
 
 
     override fun onRequestPermissionsResult(

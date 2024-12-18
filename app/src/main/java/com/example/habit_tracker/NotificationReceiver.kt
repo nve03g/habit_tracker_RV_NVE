@@ -10,29 +10,28 @@ import androidx.core.app.NotificationCompat
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val habitName = intent.getStringExtra("habit_name") ?: "Habit Deadline"
+        val quote = intent.getStringExtra("quote") ?: "Blijf gemotiveerd!"
 
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Creëer het Notification Channel (vanaf Android 8.0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                "habit_deadline_channel",
-                "Habit Deadline Notifications",
+                "daily_quote_channel",
+                "Dagelijkse Motivatie",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Bouw de melding
-        val notification = NotificationCompat.Builder(context, "habit_deadline_channel")
+        val notification = NotificationCompat.Builder(context, "daily_quote_channel")
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("Habit Reminder")
-            .setContentText("Deadline nadert: $habitName")
+            .setContentTitle("Dagelijkse Motivatie")
+            .setContentText(quote)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(quote))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        notificationManager.notify(1, notification)
     }
 }
