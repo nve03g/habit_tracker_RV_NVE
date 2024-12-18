@@ -46,6 +46,7 @@ import com.example.habit_tracker.network.QuotesRepository
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
+import java.text.ParseException
 import java.util.concurrent.TimeUnit
 
 
@@ -316,31 +317,31 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun setNotification(habit: Habit) {
-        if (habit.deadline.isNullOrBlank()) return
+        if (habit.deadline.isNullOrBlank() || habit.deadline == "No deadline set") return
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val deadlineDate = sdf.parse(habit.deadline)?.time ?: return
 
-        // Bereken 1 dag op voorhand
-        val triggerTime = deadlineDate - 24 * 60 * 60 * 1000 // System.currentTimeMillis() + 10 * 1000
+        try {
+            val deadlineDate = sdf.parse(habit.deadline)?.time ?: return
+            val triggerTime = deadlineDate - 24 * 60 * 60 * 1000 // 1 day before
 
-        if (triggerTime < System.currentTimeMillis()) return // Voorkom oude meldingen
+            if (triggerTime < System.currentTimeMillis()) return // Skip past deadlines
 
-        // Intent voor de BroadcastReceiver
-        val intent = Intent(this, NotificationReceiver::class.java).apply {
-            putExtra("habit_name", habit.name)
+            val intent = Intent(this, NotificationReceiver::class.java).apply {
+                putExtra("habit_name", habit.name)
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                habit.id,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+        } catch (e: ParseException) {
+            Log.e("SetNotification", "Invalid date format: ${habit.deadline}", e)
         }
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            habit.id, // Unieke ID per habit
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Stel de alarm in
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
     }
 
     // add new habits
@@ -414,7 +415,7 @@ class MainActivity : AppCompatActivity() {
                         name = name,
                         category = category,
                         subtasks = subtasks,
-                        deadline = deadline,
+                        deadline = if (deadline.isNotBlank()) deadline else null, // Use null for unset deadlines
                         imageUri = selectedImageUri?.toString() ?: "" // save image, Zet null om naar lege string
                     )
                     lifecycleScope.launch {
