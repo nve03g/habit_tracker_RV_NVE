@@ -83,13 +83,8 @@ class MainActivity : AppCompatActivity() {
         // zet de layout
         setContentView(R.layout.activity_main)
 
-        // Haal een dagelijkse motivatiequote op en toon deze
-        val quotesRepository = QuotesRepository()
-        quotesRepository.fetchQuote("gx25opPAZ57nRy/L40ZACw==3ABDh7gOD4447zKe") { quote ->
-            sendDailyNotification(quote)
-        }
-
         // Plan dagelijkse notificatie om 9u met WorkManager
+        val quotesRepository = QuotesRepository()
         scheduleDailyQuote()
 
         // set up toolbar
@@ -257,10 +252,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun scheduleDailyQuote() {
         val currentTime = Calendar.getInstance()
-        val targetTime = java.util.Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 9)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
+        val targetTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 15)
+            set(Calendar.MINUTE, 42)
+            set(Calendar.SECOND, 30)
         }
 
         if (currentTime.after(targetTime)) {
@@ -275,7 +270,7 @@ class MainActivity : AppCompatActivity() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "DailyQuoteWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,
             dailyWorkRequest
         )
     }
