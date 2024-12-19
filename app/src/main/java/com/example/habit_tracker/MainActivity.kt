@@ -83,13 +83,8 @@ class MainActivity : AppCompatActivity() {
         // zet de layout
         setContentView(R.layout.activity_main)
 
-        // Haal een dagelijkse motivatiequote op en toon deze
-        val quotesRepository = QuotesRepository()
-        quotesRepository.fetchQuote("gx25opPAZ57nRy/L40ZACw==3ABDh7gOD4447zKe") { quote ->
-            sendDailyNotification(quote)
-        }
-
         // Plan dagelijkse notificatie om 9u met WorkManager
+        val quotesRepository = QuotesRepository()
         scheduleDailyQuote()
 
         // set up toolbar
@@ -257,10 +252,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun scheduleDailyQuote() {
         val currentTime = Calendar.getInstance()
-        val targetTime = java.util.Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 9)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
+        val targetTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 15)
+            set(Calendar.MINUTE, 42)
+            set(Calendar.SECOND, 30)
         }
 
         if (currentTime.after(targetTime)) {
@@ -275,7 +270,7 @@ class MainActivity : AppCompatActivity() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "DailyQuoteWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,
             dailyWorkRequest
         )
     }
@@ -544,17 +539,29 @@ class MainActivity : AppCompatActivity() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_habit, null)
         val inputField: EditText = dialogView.findViewById(R.id.habitNameInput)
         val categorySpinner: Spinner = dialogView.findViewById(R.id.categorySpinner)
-        val subtasksContainer: LinearLayout = dialogView.findViewById(R.id.subtasksContainer)
         val addSubtaskButton: Button = dialogView.findViewById(R.id.addSubtaskButton)
         val deleteButton: Button = dialogView.findViewById(R.id.deleteHabitButton)
         val setDeadlineButton: Button = dialogView.findViewById(R.id.setDeadlineButton)
         val deadlineTextView: TextView = dialogView.findViewById(R.id.deadlineTextView)
         val habitImageView: ImageView = dialogView.findViewById(R.id.habitImageView)
         val selectImageButton: Button = dialogView.findViewById(R.id.selectImageButton)
+        val subtasksContainer: LinearLayout = dialogView.findViewById(R.id.subtasksContainer)
 
         val habit = habits[position]
         inputField.setText(habit.name)
         deadlineTextView.text = habit.deadline ?: "No deadline set"
+
+        // Verwijder oude inhoud in de subtasksContainer
+        subtasksContainer.removeAllViews()
+
+        // Voeg bestaande subtaken toe aan het container
+        habit.subtasks.forEach { subtask ->
+            val subtaskView = createSubtaskInput(subtask.name, subtasksContainer).apply {
+                val subtaskInput = getChildAt(0) as EditText
+                subtaskInput.setText(subtask.name)
+            }
+            subtasksContainer.addView(subtaskView)
+        }
 
         // Toon bestaande afbeelding, indien aanwezig
         if (habit.imageUri != null && habit.imageUri!!.isNotBlank()) {
@@ -610,7 +617,11 @@ class MainActivity : AppCompatActivity() {
                     val subtaskInput = container.getChildAt(0) as EditText
                     val subtaskName = subtaskInput.text.toString().trim()
                     if (subtaskName.isNotEmpty()) {
-                        updatedSubtasks.add(Subtask(subtaskName))
+                        // Controleer of de subtask al bestaat in de originele lijst
+                        val existingSubtask = habit.subtasks.find { it.name == subtaskName }
+                        updatedSubtasks.add(
+                            existingSubtask ?: Subtask(subtaskName) // Behoud de originele status of maak een nieuwe
+                        )
                     }
                 }
                 if (name.isNotBlank()) {
