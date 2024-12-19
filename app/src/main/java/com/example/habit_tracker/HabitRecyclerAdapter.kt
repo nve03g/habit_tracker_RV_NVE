@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.view.children
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -103,6 +104,10 @@ class HabitRecyclerAdapter(
                         } else {
                             paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
                         }
+                        // Update de database na wijziging
+                        lifecycleScope.launch {
+                            habitDao.updateHabit(habit)
+                        }
                     }
                 }
                 holder.subtasksContainer.addView(subtaskCheckBox)
@@ -121,6 +126,18 @@ class HabitRecyclerAdapter(
         holder.habitCheckBox.setOnCheckedChangeListener { _, isChecked ->
             habit.isChecked = isChecked
             updateStrikeThrough(holder, isChecked)
+
+            // Synchroniseer de status van de subtaken
+            habit.subtasks.forEach { subtask ->
+                subtask.isComplete = isChecked
+            }
+
+            // Werk de UI bij voor de subtaken
+            holder.subtasksContainer.children.forEach { view ->
+                if (view is CheckBox) {
+                    view.isChecked = isChecked
+                }
+            }
 
             // Update de habit in de database
             lifecycleScope.launch {
