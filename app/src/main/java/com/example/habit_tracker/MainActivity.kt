@@ -253,9 +253,9 @@ class MainActivity : AppCompatActivity() {
     private fun scheduleDailyQuote() {
         val currentTime = Calendar.getInstance()
         val targetTime = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 15)
-            set(Calendar.MINUTE, 42)
-            set(Calendar.SECOND, 30)
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 19)
+            set(Calendar.SECOND, 0)
         }
 
         if (currentTime.after(targetTime)) {
